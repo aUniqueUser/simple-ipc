@@ -29,7 +29,7 @@ void CatMemoryPool::statistics(pool_info_s& info) {
 		current = real_pointer<pool_block_s>(current->next);
 	}
 	info.alloc = size - info.free;
-	info.allocblk = info.blkcnt = info.freeblk;
+	info.allocblk = info.blkcnt - info.freeblk;
 }
 
 void CatMemoryPool::init() {
