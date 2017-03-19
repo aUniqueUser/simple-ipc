@@ -102,15 +102,18 @@ void CatMemoryPool::print() {
 }
 
 void CatMemoryPool::MendBlock(pool_block_s* block) {
-	if (block->next == (void*)-1) return;
-	pool_block_s* cur_next = real_pointer<pool_block_s>(block->next);
-	if (cur_next->free) {
-		block->size += sizeof(pool_block_s) + cur_next->size;
-		printf("mended block at 0x%08x new size 0x%08x\n", pool_pointer<void>(block), block->size);
-		DeleteBlock(cur_next);
-		if (block->prev != (void*)-1) {
-			pool_block_s* cur_prev = real_pointer<pool_block_s>(block->prev);
-			if (cur_prev->free) MendBlock(cur_prev);
+	if (block->prev != (void*)-1) {
+		pool_block_s* cur_prev = real_pointer<pool_block_s>(block->prev);
+		if (cur_prev->free)	MendBlock(cur_prev);
+	} else if (block->next != (void*)-1) {
+		pool_block_s* cur_next = real_pointer<pool_block_s>(block->next);
+		while (cur_next->free) {
+			block->size += sizeof(pool_block_s) + cur_next->size;
+			printf("mended block at 0x%08x new size 0x%08x\n", pool_pointer<void>(block), block->size);
+			DeleteBlock(cur_next);
+			if (block->next != (void*)-1) {
+				cur_next = real_pointer<pool_block_s>(block->next);
+			} else break;
 		}
 	}
 }
