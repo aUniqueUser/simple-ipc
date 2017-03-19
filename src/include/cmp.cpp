@@ -15,6 +15,23 @@ CatMemoryPool::CatMemoryPool(void* base, size_t size) : base(base), size(size) {
 	printf("creating memory pool with size 0x%08x at 0x%08x\n", size, base);
 }
 
+
+void CatMemoryPool::statistics(pool_info_s& info) {
+	memset(&info, 0, sizeof(pool_info_s));
+	pool_block_s* current = (pool_block_s*)base;
+	while (current) {
+		if (current->free) {
+			info.freeblk++;
+			info.free += current->size;
+		}
+		info.blkcnt++;
+		if (current->next == (void*)-1) break;
+		current = real_pointer<pool_block_s>(current->next);
+	}
+	info.alloc = size - info.free;
+	info.allocblk = info.blkcnt = info.freeblk;
+}
+
 void CatMemoryPool::init() {
 	memset(base, 0, size);
 	pool_block_s zeroth_block;

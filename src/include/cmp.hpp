@@ -22,9 +22,19 @@ public:
 		void* next;
 	};
 
+	struct pool_info_s {
+		unsigned long free;
+		unsigned long alloc;
+		unsigned freeblk;
+		unsigned allocblk;
+		unsigned blkcnt;
+	};
+
 	void  init();
 	void* alloc(size_t size);
 	void  free(void*);
+
+	void statistics(pool_info_s& info);
 
 	void print();
 
