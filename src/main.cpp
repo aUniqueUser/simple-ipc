@@ -18,12 +18,17 @@
 
 static bool is_server = false;
 
-CIPCPeer& peer() {
-	static CIPCPeer object("test_ipc_cat", is_server);
+struct server_data { int one; };
+struct user_data { bool test; };
+
+using peer_t = cat_ipc::Peer<server_data, user_data>;
+
+peer_t& peer() {
+	static peer_t object("test_ipc_cat", false, is_server);
 	return object;
 }
 
-void process_message(command_metadata_s& cmd, void* payload) {
+void process_message(cat_ipc::command_s& cmd, void* payload) {
 	if (payload) {
 		printf("%u says: %s\n", cmd.sender, (char*)payload);
 	} else {
@@ -55,10 +60,10 @@ int main(int argc, char** argv) {
 		while (true) {
 			peer().ProcessCommands();
 			peer().SweepDead();
-			printf("peer count: %u command count: %lu\n", peer().memory->manager_data.peer_count, peer().memory->command_count);
-			for (int i = 0; i < MAX_PEERS; i++) {
-				if (!peer().memory->manager_data.peer_data[i].free)
-					printf("%i: [%i] ", i, peer().memory->manager_data.peer_data[i].pid);
+			printf("peer count: %u command count: %lu\n", peer().memory->peer_count, peer().memory->command_count);
+			for (unsigned i = 0; i < cat_ipc::max_peers; i++) {
+				if (!peer().memory->peer_data[i].free)
+					printf("%i: [%i] ", i, peer().memory->peer_data[i].pid);
 			}
 			printf("\n");
 			sleep(5);
