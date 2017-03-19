@@ -105,7 +105,7 @@ public:
 	/*
 	 * Checks if peer has new commands to process (non-blocking)
 	 */
-	bool HasCommands() {
+	bool HasCommands() const {
 		return (last_command != memory->command_count);
 	}
 
@@ -134,7 +134,7 @@ public:
 	/*
 	 * Checks every slot in memory->peer_data, throws runtime_error if there are no free slots
 	 */
-	unsigned FirstAvailableSlot() {
+	unsigned FirstAvailableSlot() const {
 		MutexLock lock(this);
 		for (unsigned i = 0; i < max_peers; i++) {
 			if (memory->peer_data[i].free) {
@@ -147,7 +147,7 @@ public:
 	/*
 	 * Returns true if the slot can be marked free
 	 */
-	bool IsPeerDead(unsigned id) {
+	bool IsPeerDead(unsigned id) const {
 		if (memory->peer_data[id].free) return true;
 		proc_stat_s stat;
 		read_stat(memory->peer_data[id].pid, &stat);
@@ -226,7 +226,7 @@ public:
 	/*
 	 * Posts a command to memory, increases command_count
 	 */
-	void SendMessage(char* data_small, unsigned peer_mask, char* payload, size_t payload_size) {
+	void SendMessage(const char* data_small, unsigned peer_mask, const void* payload, size_t payload_size) {
 		MutexLock lock(this);
 		command_s& cmd = memory->commands[++memory->command_count % command_buffer];
 		if (cmd.payload_size) {
