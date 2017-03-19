@@ -45,7 +45,11 @@ void print_status() {
 	fflush(stdout);
 	ESC_CUP(2, 2);
 	TEXT_BOLD;
+<<<<<<< HEAD
 	printf("ipc server %s", server_name.c_str());
+=======
+	printf("cathook followbot server");
+>>>>>>> refs/remotes/origin/master
 	ESC_CUP(3, 4);
 	printf("connected: ");
 	TEXT_NORMAL; printf("%d", peer().memory->peer_count); TEXT_BOLD;
