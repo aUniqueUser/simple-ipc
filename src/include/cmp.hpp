@@ -11,16 +11,16 @@
 #include <stddef.h>
 #include <stdint.h>
 
-struct pool_block_s {
-	bool free;
-	size_t size;
-	void* prev;
-	void* next;
-};
-
 class CatMemoryPool {
 public:
 	CatMemoryPool(void* base, size_t size);
+
+	struct pool_block_s {
+		bool free;
+		size_t size;
+		void* prev;
+		void* next;
+	};
 
 	void  init();
 	void* alloc(size_t size);

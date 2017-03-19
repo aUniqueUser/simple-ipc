@@ -25,7 +25,7 @@ void CatMemoryPool::init() {
 	memcpy(base, &zeroth_block, sizeof(pool_block_s));
 }
 
-pool_block_s* CatMemoryPool::FindBlock(size_t size) {
+CatMemoryPool::pool_block_s* CatMemoryPool::FindBlock(size_t size) {
 	pool_block_s* current = (pool_block_s*)base;
 	while (current) {
 		if (current->free) {

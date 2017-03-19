@@ -13,8 +13,8 @@
 #include <time.h>
 #include <csignal>
 
-#include "cmp.hpp"
-#include "ipcb.hpp"
+#include "include/cmp.hpp"
+#include "include/ipcb.hpp"
 
 static bool is_server = false;
 
