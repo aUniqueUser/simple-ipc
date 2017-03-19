@@ -76,27 +76,8 @@ public:
 	 * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
 	 * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
 	 */
-	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), is_manager(manager) {
-		printf("connecting to %s...\n", name.c_str());
-		int old_mask = umask(0);
-		int fd = shm_open(name.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
-		ftruncate(fd, sizeof(memory_t));
-		umask(old_mask);
-		memory = (memory_t*)mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
-		close(fd);
+	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), is_manager(manager), process_old_commands(process_old_commands) {
 
-		pool = new CatMemoryPool(&memory->pool, pool_size);
-
-		if (is_manager) {
-			InitManager();
-		}
-
-		client_id = FirstAvailableSlot();
-		StorePeerData();
-
-		if (!process_old_commands) {
-			last_command = memory->command_count;
-		}
 	}
 
 	~Peer() {
@@ -120,6 +101,35 @@ public:
 
 		Peer* parent;
 	};
+
+	/*
+	 * Checks if peer has new commands to process (non-blocking)
+	 */
+	bool HasCommands() {
+		return (last_command != memory->command_count);
+	}
+
+	/*
+	 * Actually connects to server
+	 */
+	void Connect() {
+		connected = true;
+		int old_mask = umask(0);
+		int fd = shm_open(name.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+		ftruncate(fd, sizeof(memory_t));
+		umask(old_mask);
+		memory = (memory_t*)mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
+		close(fd);
+		pool = new CatMemoryPool(&memory->pool, pool_size);
+		if (is_manager) {
+			InitManager();
+		}
+		client_id = FirstAvailableSlot();
+		StorePeerData();
+		if (!process_old_commands) {
+			last_command = memory->command_count;
+		}
+	}
 
 	/*
 	 * Checks every slot in memory->peer_data, throws runtime_error if there are no free slots
@@ -236,6 +246,8 @@ public:
 		cmd.command_number = memory->command_count;
 	}
 
+	bool process_old_commands { true };
+	bool connected { false };
 	unsigned client_id { 0 };
 	unsigned long last_command { 0 };
 	CommandCallbackFn_t callback { nullptr };

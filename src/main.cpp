@@ -108,6 +108,7 @@ int main(int argc, char** argv) {
 	}
 	if (!strcmp(argv[1], "server")) {
 		is_server = true;
+		peer().Connect();
 		while (true) {
 			peer().ProcessCommands();
 			peer().SweepDead();
@@ -115,6 +116,7 @@ int main(int argc, char** argv) {
 			usleep(10000);
 		}
 	} else if (!strcmp(argv[1], "client")) {
+		peer().Connect();
 		peer().SetCallback(process_message);
 		pthread_t thread;
 		pthread_create(&thread, 0, listen_for_messages, 0);
