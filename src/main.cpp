@@ -23,8 +23,10 @@ struct user_data { bool test; };
 
 using peer_t = cat_ipc::Peer<server_data, user_data>;
 
+std::string server_name = "test_ipc_cat";
+
 peer_t& peer() {
-	static peer_t object("test_ipc_cat", false, is_server);
+	static peer_t object(server_name, false, is_server);
 	return object;
 }
 
@@ -54,6 +56,9 @@ int main(int argc, char** argv) {
 	if (argc < 2) {
 		printf("usage: %s [server|client]\n", argv[0]);
 		return 0;
+	}
+	if (argc > 2) {
+		server_name = std::string(argv[2]);
 	}
 	if (!strcmp(argv[1], "server")) {
 		is_server = true;

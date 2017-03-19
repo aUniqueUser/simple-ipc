@@ -104,8 +104,12 @@ void CatMemoryPool::print() {
 void CatMemoryPool::MendBlock(pool_block_s* block) {
 	if (block->prev != (void*)-1) {
 		pool_block_s* cur_prev = real_pointer<pool_block_s>(block->prev);
-		if (cur_prev->free)	MendBlock(cur_prev);
-	} else if (block->next != (void*)-1) {
+		if (cur_prev->free)	{
+			MendBlock(cur_prev);
+			return;
+		}
+	}
+	if (block->next != (void*)-1) {
 		pool_block_s* cur_next = real_pointer<pool_block_s>(block->next);
 		while (cur_next->free) {
 			block->size += sizeof(pool_block_s) + cur_next->size;

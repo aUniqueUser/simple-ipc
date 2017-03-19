@@ -77,6 +77,7 @@ public:
 	 * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
 	 */
 	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), is_manager(manager) {
+		printf("connecting to %s...\n", name.c_str());
 		int old_mask = umask(0);
 		int fd = shm_open(name.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
 		ftruncate(fd, sizeof(memory_t));
