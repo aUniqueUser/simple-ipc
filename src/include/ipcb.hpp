@@ -59,11 +59,12 @@ struct ipc_memory_s {
 	pthread_mutex_t mutex; 			// IPC mutex, must be locked every time you access ipc_memory_s
 	unsigned 		peer_count;		// count of alive peers, managed by "manager" (server)
 	unsigned long 	command_count;	// last command number + 1
-	S global_data;				  // some data, struct is defined by user
-	U peer_user_data[max_peers]; // some data for each peer, struct is defined by user
 	peer_data_s peer_data[max_peers];	  // state of each peer, managed by server
 	command_s 	commands[command_buffer]; // command buffer, every peer can write/read here
 	unsigned char pool[pool_size];		  // pool for storing command payloads
+	S global_data;				  // some data, struct is defined by user
+	U peer_user_data[max_peers]; // some data for each peer, struct is defined by user
+
 };
 
 template<typename S, typename U>
@@ -76,7 +77,7 @@ public:
 	 * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
 	 * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
 	 */
-	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), is_manager(manager), process_old_commands(process_old_commands) {
+	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), process_old_commands(process_old_commands), is_manager(manager) {
 
 	}
 
