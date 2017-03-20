@@ -134,7 +134,7 @@ public:
 	/*
 	 * Checks every slot in memory->peer_data, throws runtime_error if there are no free slots
 	 */
-	unsigned FirstAvailableSlot() const {
+	unsigned FirstAvailableSlot() {
 		MutexLock lock(this);
 		for (unsigned i = 0; i < max_peers; i++) {
 			if (memory->peer_data[i].free) {
