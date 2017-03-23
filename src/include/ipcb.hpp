@@ -116,7 +116,12 @@ public:
 	void Connect() {
 		connected = true;
 		int old_mask = umask(0);
-		int fd = shm_open(name.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+		int flags = O_RDWR;
+		if (is_manager) flags |= O_CREAT;
+		int fd = shm_open(name.c_str(), flags, S_IRWXU | S_IRWXG | S_IRWXO);
+		if (fd == -1) {
+			throw std::runtime_error("server isn't running");
+		}
 		ftruncate(fd, sizeof(memory_t));
 		umask(old_mask);
 		memory = (memory_t*)mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
