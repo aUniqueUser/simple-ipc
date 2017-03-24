@@ -18,6 +18,9 @@
 
 static bool is_server = false;
 
+#define CMD_TYPE_MESSAGE 1
+#define CMD_TYPE_MESSAGE_LONG 2
+
 struct server_data { int one; };
 struct user_data { bool test; };
 
@@ -76,14 +79,6 @@ void print_status() {
 	fflush(stdout);
 }
 
-void process_message(cat_ipc::command_s& cmd, void* payload) {
-	if (payload) {
-		printf("%u says: %s\n", cmd.sender, (char*)payload);
-	} else {
-		printf("%u says: %s\n", cmd.sender, cmd.cmd_data);
-	}
-}
-
 void* listen_for_messages(void* argument) {
 	while (true) {
 		peer().ProcessCommands();
@@ -117,7 +112,12 @@ int main(int argc, char** argv) {
 		}
 	} else if (!strcmp(argv[1], "client")) {
 		peer().Connect();
-		peer().SetCallback(process_message);
+		peer().SetCommandHandler(CMD_TYPE_MESSAGE, [](cat_ipc::command_s& command, void* payload) {
+			printf("%u says: %s\n", command.sender, command.cmd_data);
+		});
+		peer().SetCommandHandler(CMD_TYPE_MESSAGE_LONG, [](cat_ipc::command_s& command, void* payload) {
+			printf("%u says: %s\n", command.sender, (char*)payload);
+		});
 		pthread_t thread;
 		pthread_create(&thread, 0, listen_for_messages, 0);
 		char* buffer = new char[1024 * 1024 * 1024];
@@ -125,9 +125,9 @@ int main(int argc, char** argv) {
 			fgets(buffer, 1024 * 1024 * 1024, stdin);
 			buffer[strlen(buffer) - 1] = '\0';
 			if (strlen(buffer) > 63) {
-				peer().SendMessage(buffer, 0, buffer, strlen(buffer) + 1);
+				peer().SendMessage(0, 0, CMD_TYPE_MESSAGE_LONG, buffer, strlen(buffer) + 1);
 			} else {
-				peer().SendMessage(buffer, 0, 0, 0);
+				peer().SendMessage(buffer, 0, CMD_TYPE_MESSAGE, 0, 0);
 			}
 		}
 	}

@@ -17,6 +17,7 @@
 #include <dirent.h>
 #include <memory.h>
 
+#include <unordered_map>
 #include <iostream>
 #include <type_traits>
 #include <functional>
@@ -46,6 +47,7 @@ struct command_s {
 	unsigned 		sender;					// sender ID
 	unsigned long 	payload_offset;			// offset from pool start, points to payload allocated in pool
 	unsigned 		payload_size;			// size of payload
+	unsigned		cmd_type;				// stores user-defined command ID
 	unsigned char	cmd_data[command_data]; // can be used to store command name or just smaller messages instead of pool
 };
 
@@ -77,9 +79,7 @@ public:
 	 * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
 	 * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
 	 */
-	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), process_old_commands(process_old_commands), is_manager(manager) {
-
-	}
+	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), process_old_commands(process_old_commands), is_manager(manager) {}
 
 	~Peer() {
 		MutexLock lock(this);
@@ -206,9 +206,20 @@ public:
 
 	/*
 	 * A callback will be called every time peer gets a message
+	 * previously named: SetCallback(...)
 	 */
-	void SetCallback(CommandCallbackFn_t new_callback) {
+	void SetGeneralHandler(CommandCallbackFn_t new_callback) {
 		callback = new_callback;
+	}
+
+	/*
+	 * Set a handler that will be fired when command with specified type will appear
+	 */
+	void SetCommandHandler(unsigned command_type, CommandCallbackFn_t handler) {
+		if (callback_map.find(command_type) != callback_map.end()) {
+			throw std::logic_error("single command type can't have multiple callbacks");
+		}
+		callback_map.emplace(command_type, handler);
 	}
 
 	/*
@@ -222,7 +233,10 @@ public:
 				last_command = cmd.command_number;
 				if (cmd.sender != client_id && (!cmd.peer_mask || ((1 << client_id) & cmd.peer_mask))) {
 					if (callback) {
-						callback(cmd, cmd.payload_size ? pool->real_pointer<void>((void*)cmd.payload_offset) : 0);
+						callback(cmd, cmd.payload_size ? pool->real_pointer<void>((void*)cmd.payload_offset) : nullptr);
+					}
+					if (callback_map.find(cmd.cmd_type) != callback_map.end()) {
+						callback_map[cmd.cmd_type](cmd, cmd.payload_size ? pool->real_pointer<void>((void*)cmd.payload_offset) : nullptr);
 					}
 				}
 			}
@@ -232,7 +246,7 @@ public:
 	/*
 	 * Posts a command to memory, increases command_count
 	 */
-	void SendMessage(const char* data_small, unsigned peer_mask, const void* payload, size_t payload_size) {
+	void SendMessage(const char* data_small, unsigned peer_mask, unsigned command_type, const void* payload, size_t payload_size) {
 		MutexLock lock(this);
 		command_s& cmd = memory->commands[++memory->command_count % command_buffer];
 		if (cmd.payload_size) {
@@ -240,25 +254,28 @@ public:
 			cmd.payload_offset = 0;
 			cmd.payload_size = 0;
 		}
-		memcpy(cmd.cmd_data, data_small, sizeof(cmd.cmd_data));
+		if (data_small)
+			memcpy(cmd.cmd_data, data_small, sizeof(cmd.cmd_data));
 		if (payload_size) {
 			void* block = pool->alloc(payload_size);
 			memcpy(block, payload, payload_size);
 			cmd.payload_offset = (unsigned long)pool->pool_pointer<void>(block);
 			cmd.payload_size = payload_size;
 		}
+		cmd.cmd_type = command_type;
 		cmd.sender = client_id;
 		cmd.peer_mask = peer_mask;
 		cmd.command_number = memory->command_count;
 	}
 
-	bool process_old_commands { true };
+	std::unordered_map<unsigned, CommandCallbackFn_t> callback_map {};
 	bool connected { false };
 	unsigned client_id { 0 };
 	unsigned long last_command { 0 };
 	CommandCallbackFn_t callback { nullptr };
 	CatMemoryPool* pool { nullptr };
 	const std::string name;
+	bool process_old_commands { true };
 	ipc_memory_s<S, U>* memory { nullptr };
 	const bool is_manager { false };
 };
