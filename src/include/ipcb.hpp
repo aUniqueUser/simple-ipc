@@ -217,7 +217,7 @@ public:
 	 */
 	void SetCommandHandler(unsigned command_type, CommandCallbackFn_t handler) {
 		if (callback_map.find(command_type) != callback_map.end()) {
-			throw std::logic_error("single command type can't have multiple callbacks");
+			throw std::logic_error("single command type can't have multiple callbacks (" + std::to_string(command_type) + ")");
 		}
 		callback_map.emplace(command_type, handler);
 	}
