@@ -1,1 +1,4 @@
 /Debug/
+bin/
+*.d
+*.o
