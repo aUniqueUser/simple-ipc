@@ -83,7 +83,7 @@ public:
 
 	~Peer() {
 		MutexLock lock(this);
-		memory->peer_data[client_id].free = false;
+		memory->peer_data[client_id].free = true;
 		if (is_manager) {
 			pthread_mutex_destroy(&memory->mutex);
 			shm_unlink(name.c_str());
