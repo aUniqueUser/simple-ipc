@@ -11,6 +11,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef SILENT
+#define printf(...)
+#endif
+
 class CatMemoryPool {
 public:
 	CatMemoryPool(void* base, size_t size);

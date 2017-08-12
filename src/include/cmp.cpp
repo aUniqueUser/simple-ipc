@@ -15,7 +15,6 @@ CatMemoryPool::CatMemoryPool(void* base, size_t size) : base(base), size(size) {
 	printf("creating memory pool with size 0x%08x at 0x%08x\n", (unsigned)size, (unsigned)base);
 }
 
-
 void CatMemoryPool::statistics(pool_info_s& info) {
 	memset(&info, 0, sizeof(pool_info_s));
 	pool_block_s* current = (pool_block_s*)base;
