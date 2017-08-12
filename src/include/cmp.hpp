@@ -12,7 +12,9 @@
 #include <stdint.h>
 
 #ifdef SILENT
-#define printf(...)
+#	define LOG(...)
+#else
+#	define LOG(...) printf(__VA_ARGS__)
 #endif
 
 class CatMemoryPool {

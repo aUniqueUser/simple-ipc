@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 CatMemoryPool::CatMemoryPool(void* base, size_t size) : base(base), size(size) {
-	printf("creating memory pool with size 0x%08x at 0x%08x\n", (unsigned)size, (unsigned)base);
+	LOG("creating memory pool with size 0x%08x at 0x%08x\n", (unsigned)size, (unsigned)base);
 }
 
 void CatMemoryPool::statistics(pool_info_s& info) {
@@ -56,10 +56,10 @@ CatMemoryPool::pool_block_s* CatMemoryPool::FindBlock(size_t size) {
 void* CatMemoryPool::alloc(size_t size) {
 	pool_block_s* block = FindBlock(size);
 	if (block == (pool_block_s*)-1) {
-		printf("not enough memory to allocate block of size 0x%08x\n", (unsigned)size);
+		LOG("not enough memory to allocate block of size 0x%08x\n", (unsigned)size);
 		return (void*)0;
 	}
-	printf("allocating block of size 0x%08x at 0x%08x\n", (unsigned)size, (unsigned)pool_pointer<void>(block));
+	LOG("allocating block of size 0x%08x at 0x%08x\n", (unsigned)size, (unsigned)pool_pointer<void>(block));
 	ChipBlock(block, size);
 	block->free = false;
 	return (void*)((uintptr_t)(block) + sizeof(pool_block_s));
@@ -67,7 +67,7 @@ void* CatMemoryPool::alloc(size_t size) {
 
 void CatMemoryPool::free(void* object) {
 	pool_block_s* block = (pool_block_s*)((uintptr_t)object - sizeof(pool_block_s));
-	printf("freeing block of size 0x%08x at 0x%08x\n", block->size, (unsigned)pool_pointer<void>(block));
+	LOG("freeing block of size 0x%08x at 0x%08x\n", block->size, (unsigned)pool_pointer<void>(block));
 	block->free = true;
 	MendBlock(block);
 }
@@ -86,7 +86,7 @@ void CatMemoryPool::ChipBlock(pool_block_s* block, size_t size) {
 					real_pointer<pool_block_s>(block->next)->prev = p_new_block;
 		}
 		block->next = p_new_block;
-		printf("chipping block at 0x%08x with old size 0x%08x, made new block at 0x%08x with size 0x%08x\n", (unsigned)pool_pointer<void>(block), old_size, (unsigned)p_new_block, new_block.size);
+		LOG("chipping block at 0x%08x with old size 0x%08x, made new block at 0x%08x with size 0x%08x\n", (unsigned)pool_pointer<void>(block), old_size, (unsigned)p_new_block, new_block.size);
 		memcpy(real_pointer<void>(p_new_block), &new_block, sizeof(pool_block_s));
 	}
 }
@@ -112,7 +112,7 @@ void CatMemoryPool::MendBlock(pool_block_s* block) {
 		pool_block_s* cur_next = real_pointer<pool_block_s>(block->next);
 		while (cur_next->free) {
 			block->size += sizeof(pool_block_s) + cur_next->size;
-			printf("mended block at 0x%08x new size 0x%08x\n", (unsigned)pool_pointer<void>(block), block->size);
+			LOG("mended block at 0x%08x new size 0x%08x\n", (unsigned)pool_pointer<void>(block), block->size);
 			DeleteBlock(cur_next);
 			if (block->next != (void*)-1) {
 				cur_next = real_pointer<pool_block_s>(block->next);
@@ -122,7 +122,7 @@ void CatMemoryPool::MendBlock(pool_block_s* block) {
 }
 
 void CatMemoryPool::DeleteBlock(pool_block_s* block) {
-	printf("deleted block at 0x%08x size 0x%08x\n", (unsigned)pool_pointer<void>(block), block->size);
+	LOG("deleted block at 0x%08x size 0x%08x\n", (unsigned)pool_pointer<void>(block), block->size);
 	if (block->next != (void*)-1) real_pointer<pool_block_s>(block->next)->prev = block->prev;
 	if (block->prev != (void*)-1) real_pointer<pool_block_s>(block->prev)->next = block->next;
 }
