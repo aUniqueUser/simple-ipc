@@ -79,9 +79,13 @@ public:
 	 * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
 	 * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
 	 */
-	Peer(std::string name, bool process_old_commands = true, bool manager = false) : name(name), process_old_commands(process_old_commands), is_manager(manager) {}
+	Peer(std::string name, bool process_old_commands = true, bool manager = false, bool ghost = false) :
+		name(name), process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost) {}
 
 	~Peer() {
+		if (is_ghost) {
+			return;
+		}
 		MutexLock lock(this);
 		memory->peer_data[client_id].free = true;
 		if (is_manager) {
@@ -127,11 +131,15 @@ public:
 		memory = (memory_t*)mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
 		close(fd);
 		pool = new CatMemoryPool(&memory->pool, pool_size);
-		if (is_manager) {
-			InitManager();
+		if (not is_ghost) {
+			if (is_manager) {
+				InitManager();
+			}
+			client_id = FirstAvailableSlot();
+			StorePeerData();
+		} else {
+			client_id = unsigned(-1);
 		}
-		client_id = FirstAvailableSlot();
-		StorePeerData();
 		if (!process_old_commands) {
 			last_command = memory->command_count;
 		}
@@ -196,6 +204,9 @@ public:
 	 * Stores data about this peer in memory
 	 */
 	void StorePeerData() {
+		if (is_ghost) {
+			return;
+		}
 		MutexLock lock(this);
 		proc_stat_s stat;
 		read_stat(getpid(), &stat);
@@ -278,6 +289,7 @@ public:
 	bool process_old_commands { true };
 	ipc_memory_s<S, U>* memory { nullptr };
 	const bool is_manager { false };
+	const bool is_ghost { false };
 };
 
 }
