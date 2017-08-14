@@ -83,16 +83,17 @@ public:
 		name(name), process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost) {}
 
 	~Peer() {
+		if (is_manager) {
+			pthread_mutex_destroy(&memory->mutex);
+			shm_unlink(name.c_str());
+			munmap(memory, sizeof(memory_t));
+			return;
+		}
 		if (is_ghost) {
 			return;
 		}
 		MutexLock lock(this);
 		memory->peer_data[client_id].free = true;
-		if (is_manager) {
-			pthread_mutex_destroy(&memory->mutex);
-			shm_unlink(name.c_str());
-			munmap(memory, sizeof(memory_t));
-		}
 	}
 
 	typedef std::function<void(command_s&, void*)> CommandCallbackFn_t;
@@ -131,10 +132,10 @@ public:
 		memory = (memory_t*)mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
 		close(fd);
 		pool = new CatMemoryPool(&memory->pool, pool_size);
+		if (is_manager) {
+			InitManager();
+		}
 		if (not is_ghost) {
-			if (is_manager) {
-				InitManager();
-			}
 			client_id = FirstAvailableSlot();
 			StorePeerData();
 		} else {
