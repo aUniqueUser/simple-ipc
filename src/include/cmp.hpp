@@ -11,6 +11,12 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#ifdef SILENT
+#	define LOG(...)
+#else
+#	define LOG(...) printf(__VA_ARGS__)
+#endif
+
 class CatMemoryPool {
 public:
 	CatMemoryPool(void* base, size_t size);
