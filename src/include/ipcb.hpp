@@ -238,7 +238,6 @@ public:
 	 * Processes every command with command_number higher than this peer's last_command
 	 */
 	void ProcessCommands() {
-		MutexLock lock(this);
 		for (unsigned i = 0; i < command_buffer; i++) {
 			command_s& cmd = memory->commands[i];
 			if (cmd.command_number > last_command) {
