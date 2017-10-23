@@ -4,6 +4,7 @@
 #include <pthread.h>
 
 #include "../mutex.hpp"
+#include "../shmem.hpp"
 
 namespace cat_ipc
 {
@@ -17,6 +18,12 @@ struct mutex_data
 
 class mutex : public mutex_interface 
 {
+public:
+    virtual void init(_PLATFORM_ mutex_data *data) = 0;
+    virtual void destroy() = 0;
+    virtual void lock() = 0;
+    virtual void unlock() = 0;
+    virtual bool is_locked() = 0;
 protected:
     _PLATFORM_ mutex_data *data_;
 };

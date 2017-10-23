@@ -7,9 +7,9 @@ OUT_NAME = cat-ipc
 TARGET_DIR = bin
 TARGET = $(TARGET_DIR)/$(OUT_NAME)
 SOURCES = $(shell find $(SRC_DIR) -name "*.cpp" -print)
+SOURCES := $(filter-out $(shell find $(SRC_DIR)/win32 -name "*" -print),$(SOURCES))
 OBJECTS = $(SOURCES:.cpp=.o)
 DEPENDS = $(SOURCES:.cpp=.d)
-SRC_SUBDIRS=$(shell find $(SRC_DIR) -type d -print)
 
 .PHONY: clean directories
 

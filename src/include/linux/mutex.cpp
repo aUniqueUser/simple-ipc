@@ -1,4 +1,5 @@
 #include "../mutex.hpp"
+#include "platform.hpp"
 
 namespace cat_ipc
 {
