@@ -35,13 +35,13 @@ struct client_data { bool test; };
 
 std::string server_name = "cat_ipc_test";
 
-cat_ipc::server& server()
+cat_ipc::server<server_data, client_data>& server()
 {
     static cat_ipc::server<server_data, client_data> object(server_name);
     return object;
 }
 
-cat_ipc::client& client()
+cat_ipc::client<server_data, client_data>& client()
 {
     static cat_ipc::client<server_data, client_data> object(server_name);
     return object;

@@ -25,7 +25,7 @@ CatMemoryPool::statistics(pool_info& info) const
         }
         info.bytes_alloc += sizeof(pool_block);
         info.blocks_total++;
-        if (current->next == (void *) -1)
+        if (current->next == invalid_pool_pointer)
             break;
         current = real_pointer<pool_block>(current->next);
     }
@@ -47,8 +47,8 @@ CatMemoryPool::init()
     memset(base_, 0, size_);
     pool_block zeroth_block;
     zeroth_block.free = true;
-    zeroth_block.next = (void *) -1;
-    zeroth_block.prev = (void *) -1;
+    zeroth_block.next = invalid_pool_pointer;
+    zeroth_block.prev = invalid_pool_pointer;
     zeroth_block.size = size_;
     memcpy(base_, &zeroth_block, sizeof(pool_block));
 }
@@ -64,7 +64,7 @@ CatMemoryPool::_find(size_t size)
             if (current->size >= size)
                 return current;
         }
-        if (current->next == (void *) -1)
+        if (current->next == invalid_pool_pointer)
             break;
         current = real_pointer<pool_block>(current->next);
     }
@@ -104,9 +104,8 @@ CatMemoryPool::_chip(pool_block *block, size_t size)
         new_block.next = block->next;
         new_block.free = true;
         new_block.size = old_size - (size + sizeof(pool_block));
-        void *p_new_block = (void*) ((unsigned) pool_pointer<void>(block)
-                + sizeof(pool_block) + block->size);
-        if (block->next != (void *) -1)
+        poolptr_t p_new_block = (pool_pointer<void>(block) + sizeof(pool_block) + block->size);
+        if (block->next != invalid_pool_pointer)
         {
             real_pointer<pool_block>(block->next)->prev = p_new_block;
         }
@@ -118,7 +117,7 @@ CatMemoryPool::_chip(pool_block *block, size_t size)
 void
 CatMemoryPool::_mend(pool_block* block)
 {
-    if (block->prev != (void *) -1)
+    if (block->prev != invalid_pool_pointer)
     {
         pool_block *cur_prev = real_pointer<pool_block>(block->prev);
         if (cur_prev->free)
@@ -127,14 +126,14 @@ CatMemoryPool::_mend(pool_block* block)
             return;
         }
     }
-    if (block->next != (void *) -1)
+    if (block->next != invalid_pool_pointer)
     {
         pool_block *cur_next = real_pointer<pool_block>(block->next);
         while (cur_next->free)
         {
             block->size += sizeof(pool_block) + cur_next->size;
             _delete(cur_next);
-            if (block->next != (void *) -1)
+            if (block->next != invalid_pool_pointer)
             {
                 cur_next = real_pointer<pool_block>(block->next);
             }
@@ -147,8 +146,8 @@ CatMemoryPool::_mend(pool_block* block)
 void
 CatMemoryPool::_delete(pool_block* block)
 {
-    if (block->next != (void *) -1)
+    if (block->next != invalid_pool_pointer)
         real_pointer<pool_block>(block->next)->prev = block->prev;
-    if (block->prev != (void *) -1)
+    if (block->prev != invalid_pool_pointer)
         real_pointer<pool_block>(block->prev)->next = block->next;
 }

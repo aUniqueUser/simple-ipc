@@ -13,7 +13,8 @@
 
 class CatMemoryPool {
 public:
-    typedef void *poolptr_t;
+    typedef unsigned poolptr_t;
+    constexpr static poolptr_t invalid_pool_pointer = poolptr_t(-1);
     struct pool_block {
         bool      free;
         size_t    size;

@@ -1,55 +1,51 @@
 #include "../xshmutex.hpp"
+#include <unistd.h>
+#include <errno.h>
+#include <fcntl.h>
 
 namespace xshmutex
 {
 
-xshmutex::xshmutex(bool owner)
-    : is_owner_(owner)
+xshmutex::xshmutex(std::string name, bool owner)
+    : name_(name), is_owner_(owner)
 {
 }
 
 xshmutex::~xshmutex()
 {
-    if (is_owner_)
+    close(data_.fd);
+}
+
+void xshmutex::_init()
+{
+    std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
+    // Delete FIFO before proceeding
+    unlink(fifo_name.c_str());
+    int omask = umask(0);
+    if (mkfifo(fifo_name.c_str(), 0666) == -1)
     {
-        if (shared_data_ != nullptr)
-        {
-            destroy();
-        }
+        throw std::runtime_error("could not init xshmutex: fifo error " + std::to_string(errno));
     }
+    data_.fd = open(fifo_name.c_str(), O_RDWR, O_CREAT | O_TRUNC);
+    write(data_.fd, "1", 1);
+    umask(omask);
 }
 
-void xshmutex::init()
+void xshmutex::_destroy()
 {
-    pthread_mutexattr_t attr;
-    pthread_mutexattr_init(&attr);
-    pthread_mutexattr_setpshared(&attr, 1);
-    pthread_mutex_init(&shared_data_->mutex, &attr);
-    pthread_mutexattr_destroy(&attr);
-}
-
-void xshmutex::destroy()
-{
-    pthread_mutex_destroy(&shared_data_->mutex);
+    std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
+    unlink(fifo_name.c_str());
 }
 
 void xshmutex::lock()
 {
-    pthread_mutex_lock(&shared_data_->mutex);
+    char buf[1];
+    read(data_.fd, buf, 1);
 }
 
 void xshmutex::unlock()
 {
-    pthread_mutex_unlock(&shared_data_->mutex);
-}
-
-void xshmutex::connect_shared(shared_data *data)
-{
-    shared_data_ = data;
-    if (is_owner_)
-    {
-        init();
-    }
+    write(data_.fd, "1", 1);
 }
 
 }

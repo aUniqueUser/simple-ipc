@@ -9,7 +9,7 @@
 #include "win32/platform.hpp"
 #elif defined(__linux__)
 #define WIN32_ONLY(x)
-#define LINUX_ONLY(x)
+#define LINUX_ONLY(x) x
 #define XMEMBER(win32, linux) linux
 #include "linux/platform.hpp"
 #else
