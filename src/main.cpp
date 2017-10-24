@@ -62,21 +62,21 @@ void print_status() {
 	TEXT_NORMAL; printf("%u", server().memory->command_count); TEXT_BOLD;
 	ESC_CUP(3, 6);
 	printf("command memory pool stats: ");
-	CatMemoryPool::pool_info_s info;
+	CatMemoryPool::pool_info info;
 	peer().pool->statistics(info);
 	ESC_CUP(4, 8); ESC_EL(2);  printf("total:     ");
 	ESC_CUP(4, 9); ESC_EL(2);  printf("free:      ");
 	ESC_CUP(4, 10); ESC_EL(2); printf("allocated: ");
 	TEXT_NORMAL;
-	ESC_CUP(16, 8);  printf("%lu (%u blocks)", info.free + info.alloc, info.blkcnt);
-	ESC_CUP(16, 9); printf("%lu (%u blocks)", info.free, info.freeblk);
-	ESC_CUP(16, 10); printf("%lu (%u blocks)", info.alloc, info.allocblk);
+	ESC_CUP(16, 8);  printf("%lu (%u blocks)", info.bytes_free + info.bytes_alloc, info.blocks_total);
+	ESC_CUP(16, 9); printf("%lu (%u blocks)", info.bytes_free, info.blocks_free);
+	ESC_CUP(16, 10); printf("%lu (%u blocks)", info.bytes_alloc, info.blocks_alloc);
 	ESC_CUP(3, 12);
 	TEXT_BOLD;
 	printf("client list: ");
 	TEXT_NORMAL;
 	for (unsigned i = 0; i < cat_ipc::max_clients; i++) {
-		if (!server().memory->clients[i].free) {
+		if (!server().memory->clients[i].bytes_free) {
 			printf("%u (%d) ", i, server().memory->clients[i].process);
 		}
 	}

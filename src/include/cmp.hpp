@@ -11,52 +11,73 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#ifdef SILENT
-#	define LOG(...)
-#else
-#	define LOG(...) printf(__VA_ARGS__)
-#endif
-
 class CatMemoryPool {
 public:
-	CatMemoryPool(void* base, size_t size);
+    typedef void *poolptr_t;
+    struct pool_block {
+        bool      free;
+        size_t    size;
+        poolptr_t prev;
+        poolptr_t next;
+    };
+    struct pool_info {
+        size_t bytes_free;
+        size_t bytes_alloc;
+        size_t bytes_total;
+        size_t blocks_free;
+        size_t blocks_alloc;
+        size_t blocks_total;
+    };
+public:
+    inline
+    CatMemoryPool()
+    {
+    }
+    inline
+    CatMemoryPool(void *base, size_t size) :
+            base_(base), size_(size)
+    {
+    }
+    CatMemoryPool(const CatMemoryPool&) = delete;
 
-	struct pool_block_s {
-		bool free;
-		size_t size;
-		void* prev;
-		void* next;
-	};
+    void
+    rebase(void *base, size_t size);
 
-	struct pool_info_s {
-		unsigned long free;
-		unsigned long alloc;
-		unsigned freeblk;
-		unsigned allocblk;
-		unsigned blkcnt;
-	};
+    void
+    init();
+    void *
+    alloc(size_t size);
+    void
+    free(void *block);
 
-	void  init();
-	void* alloc(size_t size);
-	void  free(void*);
+    void
+    statistics(pool_info& info) const;
 
-	void statistics(pool_info_s& info);
+    template<typename T>
+        T*
+        real_pointer(poolptr_t pointer) const
+        {
+            return reinterpret_cast<T*>((uintptr_t) base_ + (uintptr_t) pointer);
+        }
 
-	void print();
-
-	template<typename T>
-	T* real_pointer(void* pointer) const { return reinterpret_cast<T*>((uintptr_t)base + (uintptr_t)pointer); }
-
-	template<typename T>
-	void* pool_pointer(T* pointer) const { return (void*)((uintptr_t)pointer - (uintptr_t)base); }
-
-	void* base;
-	const size_t size;
+    template<typename T>
+        poolptr_t
+        pool_pointer(T* pointer) const
+        {
+            return (poolptr_t) ((uintptr_t) pointer - (uintptr_t) base_);
+        }
 protected:
-	pool_block_s* FindBlock(size_t size);
-	void ChipBlock(pool_block_s* block, size_t size);
-	void MendBlock(pool_block_s*);
-	void DeleteBlock(pool_block_s* block);
+    pool_block *
+    _find(size_t size);
+    void
+    _chip(pool_block *block, size_t size);
+    void
+    _mend(pool_block *block);
+    void
+    _delete(pool_block *block);
+protected:
+    void *base_ { nullptr };
+    size_t size_ { 0 };
 };
 
 #endif /* CMP_HPP_ */

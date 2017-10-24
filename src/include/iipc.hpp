@@ -1,9 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "cmp.hpp"
 #include "xshmutex.hpp"
+#include "xshmem.hpp"
 
 namespace cat_ipc
 {
@@ -20,7 +22,10 @@ struct client_data
 {
     bool free;
     int  process;
-    _PLATFORM_ process_time_t start_time;
+    XMEMBER(
+    /* WIN32 */ FILETIME start_time,
+    /* LINUX */ uint32_t start_time
+    );
 };
 
 struct command_data
@@ -39,8 +44,8 @@ struct command_data
 template<typename S, typename U>
 struct layout
 {
-	static_assert(std::is_pod<S>::value, "Server data struct must be POD");
-	static_assert(std::is_pod<U>::value, "Custom data struct must be POD");
+    static_assert(std::is_pod<S>::value, "Server data struct must be POD");
+    static_assert(std::is_pod<U>::value, "Custom data struct must be POD");
 
     LINUX_ONLY(xshmutex::xshmutex::shared_data shmutex);
     unsigned client_count;
@@ -56,41 +61,65 @@ struct layout
 };
 
 template<typename S, typename U>
-class client
+class shared
 {
 public:
     typedef layout<S, U> memory_t;
     typedef std::function<void(internal::command_data&, void *)> callback_t;
     constexpr unsigned ghost_id = unsigned(-1);
 public:
-    client(std::string name);
-    ~client();
-    
-    bool connect(bool ghost);
-    void setup_message_handler(unsigned type, callback_t callback);
-    bool has_new_commands() const;
-    void process_commands();
-    void send_message(const char *data_small, unsigned target, unsigned type, const void* payload, unsigned payload_length);
-    unsigned free_slot() const;
+    inline shared(std::string server)
+        : server_name_(server)
+    {
+    }
+    inline void setup_general_handler(callback_t callback)
+    {
+        general_handler_ = callback;
+    }
+    inline bool has_new_commands() const
+    {
+        return last_command_ != memory_.get<memory_t>()->command_count;
+    }
+    void setup_specialized_handler(callback_t callback, unsigned type)
+    {
+        if (specialized_handlers_.find(type) != specialized_handlers_.end())
+        {
+            throw std::logic_error("single command type can't have multiple callbacks");
+        }
+        specialized_handlers_.emplace(type, callback);
+    }
+    void process_new_commands();
+    void send_message(unsigned target, unsigned type, const char *data_small, unsigned data_small_length, const void* payload, unsigned payload_length);
 protected:
-    bool ghost_ { false };
-    bool connected_ { false };
-    unsigned id_ { ghost_id };
-    std::string name_ { "" };
+    const std::string server_name_ { "" };
     unsigned last_command_ { 0 };
-    std::shared_ptr<shmutex::shmutex> mutex_;
-    std::shared_ptr<CatMemoryPool> pool_;
-    memory_t *memory { nullptr };
+
     callback_t general_handler_ { nullptr };
-    std::unordered_map<unsigned, callback_t> handlers_ {};
+    std::unordered_map<unsigned, callback_t> specialized_handlers_ {};
+
+    CatMemoryPool pool_;
+    xshmem::xshmem memory_;
+    xshmutex::xshmutex mutex_;
 };
 
 template<typename S, typename U>
-class server
+class client : public shared<S, U>
 {
 public:
-    typedef layout<S, U> memory_t;
-    typedef std::function<void(internal::command_data&, void *)> callback_t;
+    client(std::string name, bool ghost);
+    ~client();
+    
+    bool     connect();
+    unsigned free_slot() const;
+protected:
+    const bool ghost_;
+    bool connected_ { false };
+    unsigned id_ { ghost_id };
+};
+
+template<typename S, typename U>
+class server : public shared<S, U>
+{
 public:
     server(std::string name);
     ~server();
@@ -98,19 +127,8 @@ public:
     void update();
     bool is_client_dead(unsigned id);
     void remove_dead_clients();
-    
-    void setup_message_handler(unsigned type, callback_t callback);
-    bool has_new_commands() const;
-    void process_commands();
-    void send_message(const char *data_small, unsigned target, unsigned type, const void* payload, unsigned payload_length);
-protected:
-    std::string name_ { "" };
-    unsigned last_command_ { 0 };
-    std::shared_ptr<shmutex::shmutex> mutex_;
-    std::shared_ptr<CatMemoryPool> pool_;
-    memory_t *memory { nullptr };
-    callback_t general_handler_ { nullptr };
-    std::unordered_map<unsigned, callback_t> handlers_ {};   
 };
 
 }
+
+#include "iipc_impl.hpp"

@@ -4,7 +4,7 @@
 
 #if defined(WINDOWS)
 #include <Windows.h>
-#elif defined(LINUX)
+#elif defined(__linux__)
 #include <pthread.h>
 #endif
 
@@ -16,8 +16,8 @@ namespace xshmutex
 class xshmutex
 {
 public:
-    constexpr unsigned max_name_length = 64;
-#ifdef LINUX
+    static constexpr unsigned max_name_length = 64;
+#ifdef __linux__
     struct shared_data
     {
         pthread_mutex_t mutex;
@@ -26,7 +26,7 @@ public:
     class guard
     {
     public:
-        guard(const lock&) = delete;
+        guard(const guard&) = delete;
         guard(xshmutex& xshm) : xshm_(xshm) 
         {
             xshm_.lock();
@@ -39,21 +39,25 @@ public:
         xshmutex& xshm_;
     };
 public:
-    XMEMBER(
-    /* WIN32 */ xshmutex(std::string name),
-    /* LINUX */ xshmutex(shared_data *data_)
-    );
+    xshmutex(bool owner);
     ~xshmutex();
-    
-    void init();
-    void destroy();
     
     void lock();
     void unlock();
-    bool is_locked();
+
+    XMEMBER(
+    /* WIN32 */ void set_mutex_name(std::string name),
+    /* LINUX */ void connect_shared(shared_data *data)
+    );
 protected:
-    shared_data *shared_data_;
-    WIN32_ONLY(HANDLE handle_{INVALID_HANDLE_VALUE});
+    void init();
+    void destroy();
+protected:
+    bool is_owner_ { false };
+    XMEMBER(
+    /* WIN32 */ HANDLE handle_ {INVALID_HANDLE_VALUE},
+    /* LINUX */ shared_data *shared_data_ { nullptr }
+    );
 };
 
 }
