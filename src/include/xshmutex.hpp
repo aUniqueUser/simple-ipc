@@ -3,6 +3,7 @@
 #include "platform.hpp"
 
 #include <string>
+#include <cstdint>
 
 #if defined(WINDOWS)
 #include <Windows.h>
@@ -13,10 +14,13 @@
 namespace xshmutex
 {
 
+constexpr uint32_t open_create = (1 << 0);
+constexpr uint32_t delete_on_close = (1 << 1);
+constexpr uint32_t force_create = (1 << 2);
+
 class xshmutex
 {
 public:
-    static constexpr unsigned max_name_length = 64;
 #ifdef __linux__
     struct linux_xshmutex_data
     {
@@ -39,21 +43,14 @@ public:
         xshmutex& xshm_;
     };
 public:
-    xshmutex(std::string name, bool owner)
-        : name_(name), is_owner_(owner)
+    xshmutex(std::string name, uint32_t mode)
+        : name_(name), open_mode_(mode)
     {
-        if (is_owner_)
-        {
-            _init();
-        }
-        else
-        {
-            _open();
-        }
+        _open();
     }
     ~xshmutex()
     {
-        if (is_owner_)
+        if (open_mode_ & delete_on_close)
         {
             _destroy();
         }
@@ -72,9 +69,11 @@ protected:
     void _destroy();
 protected:
     const std::string name_ {};
-    bool is_owner_ { false };
+    const uint32_t open_mode_ { 0 };
     WIN32_ONLY(HANDLE handle_ { INVALID_HANDLE_VALUE });
     LINUX_ONLY(linux_xshmutex_data data_);
 };
 
 }
+
+#include "xshmutex_impl.hpp"

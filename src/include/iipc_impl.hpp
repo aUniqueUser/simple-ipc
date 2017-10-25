@@ -25,11 +25,11 @@ void shared<S, U>::process_new_commands()
             {
                 if (general_handler_)
                 {
-                    general_handler_(cmd, cmd.payload_length ? pool_.real_pointer<uint8_t>(cmd.payload_offset) : nullptr);
+                    general_handler_(cmd, cmd.payload_length ? pool_.real_pointer<uint8_t>(cmd.payload_offset) : cmd.data);
                 }
                 if (specialized_handlers_.find(cmd.type) != specialized_handlers_.end())
                 {
-                    specialized_handlers_[cmd.type](cmd, cmd.payload_length ? pool_.real_pointer<uint8_t>(cmd.payload_offset) : nullptr);
+                    specialized_handlers_[cmd.type](cmd, cmd.payload_length ? pool_.real_pointer<uint8_t>(cmd.payload_offset) : cmd.data);
                 }
             }
         }
@@ -37,7 +37,7 @@ void shared<S, U>::process_new_commands()
 }
 
 template<typename S, typename U>
-void shared<S, U>::send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length)
+void shared<S, U>::send_message(uint32_t target, uint32_t type, const uint8_t *data, const uint32_t data_length)
 {
     {
         // Critical Section
@@ -49,16 +49,19 @@ void shared<S, U>::send_message(uint32_t target, uint32_t type, const uint8_t *d
             pool_.free(pool_.real_pointer<void>(cmd.payload_offset));
         }
         memset(&cmd, 0, sizeof(cmd));
-        if (data_small && data_small_length)
+        if (data != nullptr && data_length != 0)
         {
-            memcpy(cmd.data, data_small, std::min(short_command_length, data_small_length));
-        }
-        if (payload && payload_length)
-        {
-            void *block = pool_.alloc(payload_length);
-            memcpy(block, payload, payload_length);
-            cmd.payload_length = payload_length;
-            cmd.payload_offset = pool_.pool_pointer(block);
+            if (data_length <= short_command_length)
+            {
+                memcpy(cmd.data, data, data_length);
+            }
+            else
+            {
+                void *block = pool_.alloc(data_length);
+                memcpy(block, data, data_length);
+                cmd.payload_length = data_length;
+                cmd.payload_offset = pool_.pool_pointer(block);
+            }
         }
         cmd.number = memory_->command_count;
         cmd.sender = id_;
@@ -68,13 +71,13 @@ void shared<S, U>::send_message(uint32_t target, uint32_t type, const uint8_t *d
 }
 
 template<typename S, typename U>
-void client<S, U>::send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length)
+void client<S, U>::send_message(uint32_t target, uint32_t type, const uint8_t *data, const uint32_t data_length)
 {
     if (!connected_ || type_ == client_type::ghost)
     {
         return;
     }
-    shared<S, U>::send_message(target, type, data_small, data_small_length, payload, payload_length);
+    shared<S, U>::send_message(target, type, data, data_length);
 }
 
 template<typename S, typename U>
@@ -122,9 +125,10 @@ bool client<S, U>::_check_memory()
 
 template<typename S, typename U>
 client<S, U>::client(std::string name, client_type type)
-    : shared<S, U>(false, name), type_(type)
+    : shared<S, U>(name, 0, 0), type_(type)
 {
     this->memory_ = (layout<S, U> *)this->shmem_.get();
+    this->pool_.rebase(this->memory_->pool, pool_size);
     connect();
 }
 
@@ -180,7 +184,7 @@ void server<S, U>::_store_magic_data()
 
 template<typename S, typename U>
 server<S, U>::server(std::string name)
-    : shared<S, U>(true, name)
+    : shared<S, U>(name, xshmem::open_create | xshmem::delete_on_close, xshmutex::force_create | xshmutex::delete_on_close)
 {
     this->memory_ = (layout<S, U> *)this->shmem_.get();
     _init();
@@ -197,6 +201,9 @@ void server<S, U>::_init()
 {
     this->id_ = this->server_id;
     this->last_command_ = 0;
+    memset(this->memory_, 0, sizeof(layout<S, U>));
+    this->pool_.rebase(this->memory_->pool, pool_size);
+    this->pool_.init();
     _store_magic_data();
     for (uint32_t i = 0; i < max_clients; ++i)
     {
@@ -214,6 +221,12 @@ template<typename S, typename U>
 void server<S, U>::update()
 {
     _remove_dead_clients();
+    uint32_t client_count = 0;
+    for (uint32_t i = 0; i < max_clients; ++i)
+    {
+        if (!this->memory_->clients[i].free) ++client_count;
+    }
+    this->memory_->client_count = client_count;
 }
 
 template<typename S, typename U>

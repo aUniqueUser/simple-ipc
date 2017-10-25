@@ -7,9 +7,8 @@ LDLIBS = -lrt -lpthread
 SRC_DIR = src
 OUT_DIR = bin
 SOURCES := $(shell find $(SRC_DIR) -name *.cpp)
-SOURCES := $(filter-out $(shell find $(SRC_DIR)/win32/ -name *.cpp),$(SOURCES))
 DEPENDS = $(SOURCES:.cpp=.d)
-TARGETS = client server
+TARGETS = client server inspect
 
 SOURCES := $(filter-out $(patsubst %,examples/%.cpp,$(TARGETS)),$(SOURCES))
 OBJECTS = $(SOURCES:.cpp=.o)

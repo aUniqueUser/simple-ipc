@@ -85,8 +85,8 @@ public:
     // Special ID used by write-only clients
     constexpr static uint32_t writer_id = unsigned(-3);
 public:
-    inline shared(bool owner, std::string server)
-        : server_name_(server), shmem_(server, owner, sizeof(memory_t)), mutex_(server, owner)
+    inline shared(std::string server, uint32_t shm_open_mode, uint32_t shmutex_open_mode)
+        : server_name_(server), shmem_(server, shm_open_mode, sizeof(memory_t)), mutex_(server, shmutex_open_mode)
     {
     }
     inline void setup_general_handler(callback_t callback)
@@ -114,7 +114,7 @@ public:
         return memory_;
     }
     void process_new_commands();
-    void send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length);
+    void send_message(uint32_t target, uint32_t type, const uint8_t *data, const uint32_t data_length);
 protected:
     const std::string server_name_ { "" };
     uint32_t last_command_ { 0 };
@@ -150,7 +150,7 @@ public:
         return connected_;
     }
     // Overrides
-    void send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length);
+    void send_message(uint32_t target, uint32_t type, const uint8_t *data, const uint32_t data_length);
     void process_new_commands();
     U *client_data() const
     {
@@ -186,3 +186,4 @@ bool _PLATFORM_ xcheckdead(internal::client_data& data);
 }
 
 #include "iipc_impl.hpp"
+#include "platform_impl.hpp"

@@ -16,10 +16,18 @@ namespace xshmutex
 
 void xshmutex::_open()
 {
+    if (open_mode_ & force_create)
+    {
+        _init();
+    }
     std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
     data_.fd = open(fifo_name.c_str(), O_RDWR);
     if (data_.fd < 0)
     {
+        if ((open_mode_ & open_create) && errno == ENOENT)
+        {
+            _init();        
+        }
         throw std::runtime_error("could not init xshmutex: fifo open error " + std::to_string(errno));
     }
 }
@@ -39,7 +47,11 @@ void xshmutex::_init()
     {
         throw std::runtime_error("could not init xshmutex: fifo error " + std::to_string(errno));
     }
-    _open();
+    data_.fd = open(fifo_name.c_str(), O_RDWR);
+    if (data_.fd < 0)
+    {
+        throw std::runtime_error("could not init xshmutex: fifo open error " + std::to_string(errno));
+    }
     unlock();
     umask(omask);
 }
@@ -53,12 +65,18 @@ void xshmutex::_destroy()
 void xshmutex::lock()
 {
     char buf[1];
-    assert(1 == read(data_.fd, buf, 1));
+    while (1 != read(data_.fd, buf, 1))
+    {
+        usleep(10000);
+    }
 }
 
 void xshmutex::unlock()
 {
-    assert(1 == write(data_.fd, "1", 1));
+    while (1 != write(data_.fd, "1", 1))
+    {
+        usleep(10000);
+    }
 }
 
 }

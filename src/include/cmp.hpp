@@ -13,6 +13,7 @@
 #include <memory.h>
 #include <stdio.h>
 #include <stdexcept>
+#include <iostream>
 
 class CatMemoryPool {
 public:
@@ -68,6 +69,7 @@ public:
         pool_block *block = _find(size);
         if (block == nullptr)
         {
+            std::cerr << "cmp: could not find a free object with size " << size << " (" << size_ << ") total\n";
             throw std::bad_alloc();
         }
         _chip(block, size);
