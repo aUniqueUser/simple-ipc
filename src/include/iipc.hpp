@@ -65,7 +65,7 @@ struct layout
     uint8_t pool[pool_size];
     
     S user_server_data;
-    U user_client_data;
+    U user_client_data[max_clients];
 
     // 0x0deadca7
     uint32_t magic2;
@@ -86,7 +86,7 @@ public:
     constexpr static uint32_t writer_id = unsigned(-3);
 public:
     inline shared(bool owner, std::string server)
-        : server_name_(server), mutex_(server, owner), shmem_(server, owner, sizeof(memory_t))
+        : server_name_(server), shmem_(server, owner, sizeof(memory_t)), mutex_(server, owner)
     {
     }
     inline void setup_general_handler(callback_t callback)
@@ -152,6 +152,10 @@ public:
     // Overrides
     void send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length);
     void process_new_commands();
+    U *client_data() const
+    {
+        return &this->memory_->user_client_data[this->id_];
+    }
 protected:
     void _store_data();
     bool _check_memory();

@@ -5,8 +5,8 @@
  *      Author: nullifiedcat
  */
 
-#include "../iipc.hpp"
-#include "util.h"
+#include "iipc.hpp"
+#include "linux/util.h"
 
 #include <sys/types.h>
 

@@ -1,4 +1,5 @@
-#include "../xshmutex.hpp"
+#include "xshmutex.hpp"
+
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>

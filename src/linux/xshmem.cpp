@@ -1,4 +1,4 @@
-#include "../xshmem.hpp"
+#include "xshmem.hpp"
 
 #include <stdexcept>
 #include <iostream>
