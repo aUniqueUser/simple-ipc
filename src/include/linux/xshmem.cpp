@@ -14,6 +14,7 @@ namespace xshmem
 
 void xshmem::init()
 {
+    std::cout << "xshmem: initializing shared memory\n";
     int omask = umask(0);
     int fd = shm_open(name_.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
     if (fd < 0)

@@ -5,6 +5,7 @@
 #include <sys/stat.h>
 #include <stdexcept>
 #include <iostream>
+#include <assert.h>
 
 namespace xshmutex
 {
@@ -46,7 +47,6 @@ void xshmutex::connect()
 
 void xshmutex::_init()
 {
-    std::cout << "xshmutex: init\n";
     std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
     // Delete FIFO before proceeding
     unlink(fifo_name.c_str());
@@ -69,12 +69,12 @@ void xshmutex::_destroy()
 void xshmutex::lock()
 {
     char buf[1];
-    read(data_.fd, buf, 1);
+    assert(1 == read(data_.fd, buf, 1));
 }
 
 void xshmutex::unlock()
 {
-    write(data_.fd, "1", 1);
+    assert(1 == write(data_.fd, "1", 1));
 }
 
 }
