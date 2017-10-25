@@ -14,9 +14,10 @@ namespace xshmem
 
 void xshmem::_init()
 {
+    std::string shm_name = "xshmem" + name_;
     std::cout << "xshmem: initializing shared memory\n";
     int omask = umask(0);
-    int fd = shm_open(name_.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    int fd = shm_open(shm_name.c_str(), O_CREAT | O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
     if (fd < 0)
     {
         throw std::runtime_error("xshmem: could not create shared memory region");
@@ -37,14 +38,15 @@ void xshmem::_init()
 
 void xshmem::_destroy()
 {
-    shm_unlink(name_.c_str());
     munmap(data_, size_);
+    shm_unlink(name_.c_str());
 }
 
 void xshmem::_open()
 {
+    std::string shm_name = "xshmem" + name_;
     int omask = umask(0);
-    int fd = shm_open(name_.c_str(), O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
+    int fd = shm_open(shm_name.c_str(), O_RDWR, S_IRWXU | S_IRWXG | S_IRWXO);
     if (fd < 0)
     {
         throw std::runtime_error("xshmem: could not open shared memory region");
@@ -64,6 +66,7 @@ void xshmem::_open()
 
 void xshmem::_close()
 {
+    munmap(data_, size_);
 }
 
 }

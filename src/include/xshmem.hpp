@@ -1,5 +1,11 @@
 #pragma once
 
+#include "platform.hpp"
+
+#ifdef WIN32
+#   include <Windows.h>
+#endif
+
 #include <string>
 
 // Cross-Platform Shared Memory
@@ -51,6 +57,7 @@ protected:
     const bool is_owner_;
     const std::string name_;
     const size_t size_;
+    WIN32_ONLY(HANDLE handle_);
 };
 
 }
