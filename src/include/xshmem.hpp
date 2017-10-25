@@ -10,7 +10,7 @@ namespace xshmem
 class xshmem
 {
 public:
-    xshmem(bool owner, std::string name, size_t size)
+    xshmem(std::string name, bool owner, size_t size)
         : is_owner_(owner), name_(name), size_(size)
     {
         if (is_owner_)
@@ -27,10 +27,9 @@ public:
     }
 
     void  connect();
-    template<typename T>
-    T *get() const
+    void *get() const
     {
-        return (T *)data_;
+        return data_;
     }
 protected:
     void init();

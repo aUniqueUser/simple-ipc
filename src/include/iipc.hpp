@@ -53,8 +53,9 @@ struct layout
 
     // 0xca75ca75
     uint32_t magic;
+    uint32_t size_server_data;
+    uint32_t size_client_data;
 
-    LINUX_ONLY(xshmutex::xshmutex::shared_data shmutex);
     uint32_t client_count;
     uint32_t command_count;
     
@@ -75,17 +76,17 @@ class shared
 {
 public:
     typedef layout<S, U> memory_t;
-    typedef std::function<void(internal::command_data&, void *)> callback_t;
+    typedef std::function<void(internal::command_data&, const uint8_t *)> callback_t;
     // Special ID used by ghost (read-only) clients
     // When in `target': command can be handled by every client
-    constexpr static unsigned ghost_id  = unsigned(-1);
+    constexpr static uint32_t ghost_id  = unsigned(-1);
     // Special ID used by server
-    constexpr static unsigned server_id = unsigned(-2);
+    constexpr static uint32_t server_id = unsigned(-2);
     // Special ID used by write-only clients
-    constexpr static unsigned writer_id = unsigned(-3);
+    constexpr static uint32_t writer_id = unsigned(-3);
 public:
-    inline shared(std::string server)
-        : server_name_(server)
+    inline shared(bool owner, std::string server)
+        : server_name_(server), mutex_(server, owner), shmem_(server, owner, sizeof(memory_t))
     {
     }
     inline void setup_general_handler(callback_t callback)
@@ -94,7 +95,7 @@ public:
     }
     inline bool has_new_commands() const
     {
-        return last_command_ != shmem_.get<memory_t>()->command_count;
+        return last_command_ != memory_->command_count;
     }
     void setup_specialized_handler(callback_t callback, unsigned type)
     {
@@ -105,11 +106,11 @@ public:
         specialized_handlers_.emplace(type, callback);
     }
     void process_new_commands();
-    void send_message(unsigned target, unsigned type, const char *data_small, size_t data_small_length, const void* payload, size_t payload_length);
+    void send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length);
 protected:
     const std::string server_name_ { "" };
-    unsigned last_command_ { 0 };
-    unsigned id_ { ghost_id };
+    uint32_t last_command_ { 0 };
+    uint32_t id_ { ghost_id };
 
     callback_t general_handler_ { nullptr };
     std::unordered_map<unsigned, callback_t> specialized_handlers_ {};
@@ -124,20 +125,30 @@ template<typename S, typename U>
 class client : public shared<S, U>
 {
 public:
-    client(std::string name, bool ghost);
+    enum class client_type
+    {
+        normal,
+        ghost,
+        writer
+    };
+public:
+    client(std::string name, client_type type);
     ~client();
     
     bool     connect();
-    unsigned free_slot() const;
+    uint32_t free_slot() const;
     bool     is_connected() const
     {
         return connected_;
     }
+    // Overrides
+    void send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length);
+    void process_new_commands();
 protected:
     void _store_data();
     bool _check_memory();
 protected:
-    const bool ghost_;
+    const client_type type_;
     bool connected_ { false };
     internal::client_data *client_data_;
 };
@@ -153,7 +164,7 @@ public:
 public:
     void _init();
     void _destroy();
-    bool _is_client_dead(unsigned id);
+    void _store_magic_data();
     void _remove_dead_clients();
 };
 

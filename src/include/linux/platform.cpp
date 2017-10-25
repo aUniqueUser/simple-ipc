@@ -10,6 +10,9 @@
 
 #include <sys/types.h>
 
+namespace cat_ipc
+{
+
 void _PLATFORM_ xstoredata(cat_ipc::internal::client_data& data)
 {
     proc_stat_s stat;
@@ -26,4 +29,6 @@ bool _PLATFORM_ xcheckdead(cat_ipc::internal::client_data& data)
         return true;
     }
     return data.start_time != stat.starttime;
+}
+
 }

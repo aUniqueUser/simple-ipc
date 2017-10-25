@@ -2,6 +2,8 @@
 
 #include "platform.hpp"
 
+#include <string>
+
 #if defined(WINDOWS)
 #include <Windows.h>
 #endif
@@ -40,6 +42,7 @@ public:
     xshmutex(std::string name, bool owner);
     ~xshmutex();
     
+    void connect();
     void lock();
     void unlock();
 

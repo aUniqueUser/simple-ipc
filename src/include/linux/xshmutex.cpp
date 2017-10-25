@@ -2,6 +2,8 @@
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <sys/stat.h>
+#include <stdexcept>
 
 namespace xshmutex
 {
@@ -13,7 +15,24 @@ xshmutex::xshmutex(std::string name, bool owner)
 
 xshmutex::~xshmutex()
 {
-    close(data_.fd);
+    if (data_.fd >= 0)
+    {
+        close(data_.fd);
+    }
+    if (is_owner_)
+    {
+        _destroy();
+    }
+}
+
+void xshmutex::connect()
+{
+    std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
+    data_.fd = open(fifo_name.c_str(), O_RDWR);
+    if (data_.fd < 0)
+    {
+        throw std::runtime_error("could not init xshmutex: fifo open error " + std::to_string(errno));
+    }
 }
 
 void xshmutex::_init()
@@ -26,8 +45,8 @@ void xshmutex::_init()
     {
         throw std::runtime_error("could not init xshmutex: fifo error " + std::to_string(errno));
     }
-    data_.fd = open(fifo_name.c_str(), O_RDWR, O_CREAT | O_TRUNC);
-    write(data_.fd, "1", 1);
+    connect();
+    unlock();
     umask(omask);
 }
 

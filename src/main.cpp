@@ -43,12 +43,12 @@ cat_ipc::server<server_data, client_data>& server()
 
 cat_ipc::client<server_data, client_data>& client()
 {
-    static cat_ipc::client<server_data, client_data> object(server_name);
+    static cat_ipc::client<server_data, client_data> object(server_name, cat_ipc::client<server_data, client_data>::client_type::normal);
     return object;
 }
 
 void print_status() {
-	ESC_CUP(1, 1);
+/*	ESC_CUP(1, 1);
 	ESC_ED(2);
 	fflush(stdout);
 	ESC_CUP(2, 2);
@@ -81,12 +81,12 @@ void print_status() {
 		}
 	}
 	ESC_CUP(1, 14);
-	fflush(stdout);
+	fflush(stdout);*/
 }
 
 void* listen_for_messages(void* argument) {
 	while (true) {
-		client().ProcessCommands();
+		client().process_new_commands();
 		usleep(1000);
 	}
 	return 0;
@@ -115,13 +115,13 @@ int main(int argc, char** argv) {
 			usleep(10000);
 		}
 	} else if (!strcmp(argv[1], "client")) {
-		client().connect(false);
-		peer().SetCommandHandler(CMD_TYPE_MESSAGE, [](cat_ipc::command_data& command, void* payload) {
-			printf("%u says: %s\n", command.sender, command.cmd_data);
-		});
-		peer().SetCommandHandler(CMD_TYPE_MESSAGE_LONG, [](cat_ipc::command_data& command, void* payload) {
+		client().connect();
+		client().setup_specialized_handler([](cat_ipc::internal::command_data& command, const uint8_t *payload) {
+			printf("%u says: %s\n", command.sender, command.data);
+		}, CMD_TYPE_MESSAGE);
+		client().setup_specialized_handler([](cat_ipc::internal::command_data& command, const uint8_t *payload) {
 			printf("%u says: %s\n", command.sender, (char*)payload);
-		});
+		}, CMD_TYPE_MESSAGE_LONG);
 		pthread_t thread;
 		pthread_create(&thread, 0, listen_for_messages, 0);
 		char* buffer = new char[1024 * 1024 * 1024];
@@ -129,9 +129,9 @@ int main(int argc, char** argv) {
 			fgets(buffer, 1024 * 1024 * 1024, stdin);
 			buffer[strlen(buffer) - 1] = '\0';
 			if (strlen(buffer) > 63) {
-				client().send_message(0, 0, CMD_TYPE_MESSAGE_LONG, buffer, strlen(buffer) + 1);
+				client().send_message(client().ghost_id, CMD_TYPE_MESSAGE_LONG, nullptr, 0, (const uint8_t *)buffer, strlen(buffer) + 1);
 			} else {
-				client().send_message(buffer, 0, CMD_TYPE_MESSAGE, 0, 0);
+				client().send_message(client().ghost_id, CMD_TYPE_MESSAGE, (const uint8_t *)buffer, strlen(buffer) + 1, nullptr, 0);
 			}
 		}
 	}

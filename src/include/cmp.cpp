@@ -10,6 +10,7 @@
 #include <stdint.h>
 #include <memory.h>
 #include <stdio.h>
+#include <stdexcept>
 
 void
 CatMemoryPool::statistics(pool_info& info) const
@@ -77,7 +78,7 @@ CatMemoryPool::alloc(size_t size)
     pool_block *block = _find(size);
     if (block == nullptr)
     {
-        return nullptr;
+        throw std::bad_alloc();
     }
     _chip(block, size);
     block->free = false;
