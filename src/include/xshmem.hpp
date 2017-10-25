@@ -17,6 +17,10 @@ public:
         {
             init();
         }
+        else
+        {
+            connect();
+        }
     }
     ~xshmem()
     {

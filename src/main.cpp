@@ -36,11 +36,11 @@ struct client_data { bool test; };
 std::string server_name = "cat_ipc_test";
 
 cat_ipc::server<server_data, client_data>& server()
-{
+{ 
     static cat_ipc::server<server_data, client_data> object(server_name);
     return object;
 }
-
+ 
 cat_ipc::client<server_data, client_data>& client()
 {
     static cat_ipc::client<server_data, client_data> object(server_name, cat_ipc::client<server_data, client_data>::client_type::normal);
@@ -48,7 +48,7 @@ cat_ipc::client<server_data, client_data>& client()
 }
 
 void print_status() {
-/*	ESC_CUP(1, 1);
+	ESC_CUP(1, 1);
 	ESC_ED(2);
 	fflush(stdout);
 	ESC_CUP(2, 2);
@@ -56,12 +56,12 @@ void print_status() {
 	printf("ipc server %s", server_name.c_str());
 	ESC_CUP(3, 4);
 	printf("connected: ");
-	TEXT_NORMAL; printf("%u", server().memory->client_count); TEXT_BOLD;
+	TEXT_NORMAL; printf("%u", server().client_count()); TEXT_BOLD;
 	ESC_CUP(3, 5);
 	printf("command count: ");
-	TEXT_NORMAL; printf("%u", server().memory->command_count); TEXT_BOLD;
+	TEXT_NORMAL; printf("%u", server().memory()->command_count); TEXT_BOLD;
 	ESC_CUP(3, 6);
-	printf("command memory pool stats: ");
+	/*printf("command memory pool stats: ");
 	CatMemoryPool::pool_info info;
 	peer().pool->statistics(info);
 	ESC_CUP(4, 8); ESC_EL(2);  printf("total:     ");
@@ -71,17 +71,18 @@ void print_status() {
 	ESC_CUP(16, 8);  printf("%lu (%u blocks)", info.bytes_free + info.bytes_alloc, info.blocks_total);
 	ESC_CUP(16, 9); printf("%lu (%u blocks)", info.bytes_free, info.blocks_free);
 	ESC_CUP(16, 10); printf("%lu (%u blocks)", info.bytes_alloc, info.blocks_alloc);
-	ESC_CUP(3, 12);
+	*/
+    ESC_CUP(3, 12);
 	TEXT_BOLD;
 	printf("client list: ");
 	TEXT_NORMAL;
 	for (unsigned i = 0; i < cat_ipc::max_clients; i++) {
-		if (!server().memory->clients[i].bytes_free) {
-			printf("%u (%d) ", i, server().memory->clients[i].process);
+		if (!server().memory()->clients[i].free) {
+			printf("%u (%d) ", i, server().memory()->clients[i].process);
 		}
 	}
 	ESC_CUP(1, 14);
-	fflush(stdout);*/
+	fflush(stdout);
 }
 
 void* listen_for_messages(void* argument) {
@@ -115,7 +116,6 @@ int main(int argc, char** argv) {
 			usleep(10000);
 		}
 	} else if (!strcmp(argv[1], "client")) {
-		client().connect();
 		client().setup_specialized_handler([](cat_ipc::internal::command_data& command, const uint8_t *payload) {
 			printf("%u says: %s\n", command.sender, command.data);
 		}, CMD_TYPE_MESSAGE);

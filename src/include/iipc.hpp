@@ -105,6 +105,14 @@ public:
         }
         specialized_handlers_.emplace(type, callback);
     }
+    uint32_t client_count() const
+    {
+        return memory_->client_count;
+    }
+    memory_t *memory() const
+    {
+        return memory_;
+    }
     void process_new_commands();
     void send_message(uint32_t target, uint32_t type, const uint8_t *data_small, uint32_t data_small_length, const uint8_t* payload, uint32_t payload_length);
 protected:

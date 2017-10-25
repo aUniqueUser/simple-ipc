@@ -124,6 +124,8 @@ template<typename S, typename U>
 client<S, U>::client(std::string name, client_type type)
     : shared<S, U>(false, name), type_(type)
 {
+    this->memory_ = (layout<S, U> *)this->shmem_.get();
+    connect();
 }
 
 template<typename S, typename U>
@@ -134,9 +136,6 @@ client<S, U>::~client()
 template<typename S, typename U>
 bool client<S, U>::connect()
 {
-    this->mutex_.connect();
-    this->shmem_.connect();
-    this->memory_ = nullptr;
     if (!_check_memory())
     {
         return false;
@@ -148,6 +147,7 @@ bool client<S, U>::connect()
         {
             return false;
         }
+        this->client_data_ = &this->memory_->clients[this->id_];
         _store_data();
     }
     this->last_command_ = this->memory_->command_count;
@@ -182,6 +182,7 @@ template<typename S, typename U>
 server<S, U>::server(std::string name)
     : shared<S, U>(true, name)
 {
+    this->memory_ = (layout<S, U> *)this->shmem_.get();
     _init();
 }
 

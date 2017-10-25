@@ -4,6 +4,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <stdexcept>
+#include <iostream>
 
 namespace xshmutex
 {
@@ -11,6 +12,14 @@ namespace xshmutex
 xshmutex::xshmutex(std::string name, bool owner)
     : name_(name), is_owner_(owner)
 {
+    if (is_owner_)
+    {
+        _init();
+    }
+    else
+    {
+        connect();
+    }
 }
 
 xshmutex::~xshmutex()
@@ -37,6 +46,7 @@ void xshmutex::connect()
 
 void xshmutex::_init()
 {
+    std::cout << "xshmutex: init\n";
     std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
     // Delete FIFO before proceeding
     unlink(fifo_name.c_str());

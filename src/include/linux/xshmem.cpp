@@ -1,6 +1,7 @@
 #include "../xshmem.hpp"
 
 #include <stdexcept>
+#include <iostream>
 #include <fcntl.h>
 #include <string.h>
 #include <sys/mman.h>
