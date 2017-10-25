@@ -39,14 +39,35 @@ public:
         xshmutex& xshm_;
     };
 public:
-    xshmutex(std::string name, bool owner);
-    ~xshmutex();
+    xshmutex(std::string name, bool owner)
+        : name_(name), is_owner_(owner)
+    {
+        if (is_owner_)
+        {
+            _init();
+        }
+        else
+        {
+            _open();
+        }
+    }
+    ~xshmutex()
+    {
+        if (is_owner_)
+        {
+            _destroy();
+        }
+        else
+        {
+            _close();
+        }
+    }
     
-    void connect();
     void lock();
     void unlock();
-
 protected:
+    void _open();
+    void _close();
     void _init();
     void _destroy();
 protected:

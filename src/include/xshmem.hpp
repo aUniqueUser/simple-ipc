@@ -15,29 +15,37 @@ public:
     {
         if (is_owner_)
         {
-            init();
+            _init();
         }
         else
         {
-            connect();
+            _open();
         }
     }
     ~xshmem()
     {
-        if (is_owner_ && data_ != nullptr)
+        if (data_ != nullptr)
         {
-            destroy();
+            if (is_owner_)
+            {
+                _destroy();
+            }
+            else
+            {
+                _close();
+            }
         }
     }
 
-    void  connect();
     void *get() const
     {
         return data_;
     }
 protected:
-    void init();
-    void destroy();
+    void _open();
+    void _close();
+    void _init();
+    void _destroy();
 protected:
     void *data_ { nullptr };
     const bool is_owner_;

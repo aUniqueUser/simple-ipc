@@ -11,32 +11,7 @@
 namespace xshmutex
 {
 
-xshmutex::xshmutex(std::string name, bool owner)
-    : name_(name), is_owner_(owner)
-{
-    if (is_owner_)
-    {
-        _init();
-    }
-    else
-    {
-        connect();
-    }
-}
-
-xshmutex::~xshmutex()
-{
-    if (data_.fd >= 0)
-    {
-        close(data_.fd);
-    }
-    if (is_owner_)
-    {
-        _destroy();
-    }
-}
-
-void xshmutex::connect()
+void xshmutex::_open()
 {
     std::string fifo_name = "/tmp/.xshmutex_fifo_" + name_;
     data_.fd = open(fifo_name.c_str(), O_RDWR);
@@ -44,6 +19,11 @@ void xshmutex::connect()
     {
         throw std::runtime_error("could not init xshmutex: fifo open error " + std::to_string(errno));
     }
+}
+
+void xshmutex::_close()
+{
+    close(data_.fd);
 }
 
 void xshmutex::_init()
@@ -56,7 +36,7 @@ void xshmutex::_init()
     {
         throw std::runtime_error("could not init xshmutex: fifo error " + std::to_string(errno));
     }
-    connect();
+    _open();
     unlock();
     umask(omask);
 }
