@@ -2,7 +2,8 @@
 
 #include <string>
 #include <iostream>
-#include <unistd.h>
+#include <thread>
+#include <chrono>
  
 constexpr uint32_t message_type_simple = 0;
 
@@ -15,14 +16,13 @@ cat_ipc::client<server_info, client_info>& client()
     return object;
 }
 
-void *listener_thread(void *argument)
+void listener_thread()
 {
     while (true)
     {
         client().process_new_commands();
-        usleep(1000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
-    return 0;
 }
 
 int main(int argc, char **argv)
@@ -40,8 +40,7 @@ int main(int argc, char **argv)
         std::cout << client().memory()->user_client_data[cmd.sender].name << " says: ";
         std::cout << payload;
     }, message_type_simple);
-    pthread_t thread;
-	pthread_create(&thread, 0, listener_thread, 0);
+    std::thread listener { listener_thread };
 	char* buffer = new char[1024 * 1024];
 	while (true) {
         fgets(buffer, 1024 * 1024, stdin);

@@ -5,7 +5,7 @@
 #include <string>
 #include <cstdint>
 
-#if defined(WINDOWS)
+#if defined(WIN32)
 #include <Windows.h>
 #endif
 
@@ -70,7 +70,7 @@ protected:
 protected:
     const std::string name_ {};
     const uint32_t open_mode_ { 0 };
-    WIN32_ONLY(HANDLE handle_ { INVALID_HANDLE_VALUE });
+    WIN32_ONLY(HANDLE handle_);
     LINUX_ONLY(linux_xshmutex_data data_);
 };
 

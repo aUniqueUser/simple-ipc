@@ -1,7 +1,8 @@
 #include "iipc.hpp"
 
 #include <iostream>
-#include <unistd.h>
+#include <thread>
+#include <chrono>
 
 constexpr uint32_t message_type_simple = 0;
 
@@ -26,7 +27,7 @@ int main(int argc, char **argv)
     while (true)
     {
         server().update();
-        usleep(10000);
+		std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
     return 0;
 }

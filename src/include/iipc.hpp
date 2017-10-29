@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <memory>
 #include <unordered_map>
+#include <functional>
 
 #include "cmp.hpp"
 #include "xshmutex.hpp"
