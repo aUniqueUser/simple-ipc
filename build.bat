@@ -1,4 +1,2 @@
-rem Need MinGW
-
-g++ example/client.cpp -std=c++1z -g3 -ggdb -O3 -DWIN32 -Isrc/include -o bin/client
-g++ example/server.cpp -std=c++1z -g3 -ggdb -O3 -DWIN32 -Isrc/include -o bin/server
+cl /EHsc example/client.cpp Advapi32.lib /Isrc/include /DWIN32
+cl /EHsc example/server.cpp	Advapi32.lib /Isrc/include /DWIN32 

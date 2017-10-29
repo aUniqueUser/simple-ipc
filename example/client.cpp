@@ -32,7 +32,15 @@ int main(int argc, char **argv)
         std::cout << "Usage: " << argv[0] << " <name>\n";
         return 1;
     }
-    
+    try
+	{
+		client();
+	}
+	catch (std::exception& ex)
+	{
+		std::cout << "Exception: " << ex.what() << "\n";
+		return 1;
+	}
     strncpy(client().client_data()->name, argv[1], 255);
     std::cout << "Welcome to " << client().memory()->user_server_data.name << ", " << argv[1] << "!\n";
     client().setup_specialized_handler([](cat_ipc::internal::command_data& cmd, const uint8_t *payload)

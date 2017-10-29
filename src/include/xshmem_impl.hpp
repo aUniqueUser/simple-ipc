@@ -1,7 +1,6 @@
 #include "xshmem.hpp"
 
 #include <stdexcept>
-#include <iostream>
 
 #if defined(__linux__)
 
@@ -62,6 +61,7 @@ void xshmem::_close()
 #elif defined(WIN32)
 
 #   include <Windows.h>
+#	include <Sddl.h>
 
 namespace xshmem
 {
@@ -69,10 +69,18 @@ namespace xshmem
 void xshmem::_init()
 {
     // Init Windows Shared Memory
-    handle_ = CreateFileMappingA(INVALID_HANDLE_VALUE, NULL, PAGE_READWRITE, 0, size_, ("Global\\xshmem_" + name_).c_str());
+	SECURITY_ATTRIBUTES security;
+	ZeroMemory(&security, sizeof(security));
+	security.nLength = sizeof(security);
+	ConvertStringSecurityDescriptorToSecurityDescriptorA(
+			"D:P(A;OICI;GA;;;SY)(A;OICI;GA;;;BA)(A;OICI;GA;;;IU)",
+        SDDL_REVISION_1,
+        &security.lpSecurityDescriptor,
+        NULL);
+    handle_ = CreateFileMappingA(INVALID_HANDLE_VALUE, &security, PAGE_READWRITE, 0, size_, ("Global\\xshmem_" + name_).c_str());
     if (handle_ == NULL)
     {
-        throw std::runtime_error("xshmem: could not create file mapping");
+        throw std::runtime_error("xshmem: could not create file mapping: " + std::to_string(GetLastError()));
     }
     data_ = (uint8_t *) MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, size_);
     if (data_ == NULL)
@@ -89,17 +97,22 @@ void xshmem::_destroy()
 
 void xshmem::_open()
 {
+	if (open_mode_ & open_create)
+	{
+		_init();
+		return;
+	}
     // Open Windows Shared Memory
     // must set data_
     handle_ = OpenFileMappingA(FILE_MAP_ALL_ACCESS, FALSE, ("Global\\xshmem_" + name_).c_str());
     if (handle_ == NULL)
     {
-        throw std::runtime_error("xshmem: could not open file mapping");
+        throw std::runtime_error("xshmem: could not open file mapping: " + std::to_string(GetLastError()));
     }
     data_ = (uint8_t *) MapViewOfFile(handle_, FILE_MAP_ALL_ACCESS, 0, 0, size_);
     if (data_ == NULL)
     {
-        throw std::runtime_error("xshmem: could not map view of file");
+        throw std::runtime_error("xshmem: could not map view of file: " + std::to_string(GetLastError()));
     }
 }
 

@@ -84,6 +84,7 @@ void xshmutex::unlock()
 #elif defined(WIN32)
 
 #   include <Windows.h>
+#	include <Sddl.h>
 
 namespace xshmutex
 {
@@ -91,11 +92,19 @@ namespace xshmutex
 void xshmutex::_open()
 {
     // Open Windows Mutex
+	SECURITY_ATTRIBUTES security;
+	ZeroMemory(&security, sizeof(security));
+	security.nLength = sizeof(security);
+	ConvertStringSecurityDescriptorToSecurityDescriptorA(
+		"D:P(A;OICI;GA;;;SY)(A;OICI;GA;;;BA)(A;OICI;GA;;;IU)",
+        SDDL_REVISION_1,
+        &security.lpSecurityDescriptor,
+        NULL);
     std::string mtx_name = "Global\\xshmutex_" + name_;
-    handle_ = CreateMutexA(NULL, FALSE, mtx_name.c_str());
+    handle_ = CreateMutexA(&security, FALSE, mtx_name.c_str());
     if (handle_ == NULL)
     {
-        throw std::runtime_error("xshmutex: failed to create mutex");
+        throw std::runtime_error("xshmutex: failed to create mutex: " + std::to_string(GetLastError()));
     }
     
 }
