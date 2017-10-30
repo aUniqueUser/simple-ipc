@@ -31,7 +31,8 @@ int main(int argc, char **argv)
 		while (true)
 		{
 			server().update();
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			// 10 seconds
+			std::this_thread::sleep_for(std::chrono::milliseconds(10000));
 		}	
 	}
 	catch (std::exception& ex)

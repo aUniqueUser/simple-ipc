@@ -2,3 +2,7 @@
 bin/
 *.d
 *.o
+*.exe
+*.obj
+*.ilk
+*.pdb

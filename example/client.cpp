@@ -18,6 +18,7 @@ cat_ipc::client<server_info, client_info>& client()
 
 void listener_thread()
 {
+	std::cout << "Listening for messages\n";
     while (true)
     {
         client().process_new_commands();
@@ -27,32 +28,32 @@ void listener_thread()
 
 int main(int argc, char **argv)
 {
-    if (argc < 2)
-    {
-        std::cout << "Usage: " << argv[0] << " <name>\n";
-        return 1;
-    }
     try
 	{
+		if (argc < 2)
+		{
+			std::cout << "Usage: " << argv[0] << " <name>\n";
+			return 1;
+		}
 		client();
+		strncpy(client().client_data()->name, argv[1], 255);
+		std::cout << "Welcome to " << client().memory()->user_server_data.name << ", " << argv[1] << "!\n";
+		client().setup_specialized_handler([](cat_ipc::internal::command_data& cmd, const uint8_t *payload)
+		{
+			std::cout << client().memory()->user_client_data[cmd.sender].name << " says: ";
+			std::cout << payload;
+		}, message_type_simple);
+		std::thread listener(listener_thread);
+		char* buffer = new char[1024 * 1024];
+		while (true) {
+			fgets(buffer, 1024 * 1024, stdin);
+			buffer[strlen(buffer)] = '\0';
+			client().send_message(client().ghost_id, message_type_simple, (const uint8_t *)buffer, strlen(buffer) + 1);
+		}
 	}
 	catch (std::exception& ex)
 	{
 		std::cout << "Exception: " << ex.what() << "\n";
 		return 1;
-	}
-    strncpy(client().client_data()->name, argv[1], 255);
-    std::cout << "Welcome to " << client().memory()->user_server_data.name << ", " << argv[1] << "!\n";
-    client().setup_specialized_handler([](cat_ipc::internal::command_data& cmd, const uint8_t *payload)
-    {
-        std::cout << client().memory()->user_client_data[cmd.sender].name << " says: ";
-        std::cout << payload;
-    }, message_type_simple);
-    std::thread listener { listener_thread };
-	char* buffer = new char[1024 * 1024];
-	while (true) {
-        fgets(buffer, 1024 * 1024, stdin);
-		buffer[strlen(buffer)] = '\0';
-		client().send_message(client().ghost_id, message_type_simple, (const uint8_t *)buffer, strlen(buffer) + 1);
 	}
 }

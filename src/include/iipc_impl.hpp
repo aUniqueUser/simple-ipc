@@ -232,6 +232,7 @@ void server<S, U>::update()
 template<typename S, typename U>
 void server<S, U>::_remove_dead_clients()
 {
+    xshmutex::xshmutex::guard lock();
     for (uint32_t i = 0; i < max_clients; ++i)
     {
         internal::client_data& client = this->memory_->clients[i];

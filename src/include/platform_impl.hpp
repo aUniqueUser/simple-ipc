@@ -151,7 +151,8 @@ void _PLATFORM_ xstoredata(cat_ipc::internal::client_data& data)
 {
     HANDLE current = GetCurrentProcess();
     data.process = GetProcessId(current);
-    GetProcessTimes(current, &data.start_time, nullptr, nullptr, nullptr);
+    FILETIME ftExit, ftKernel, ftUser;
+    GetProcessTimes(current, &data.start_time, &ftExit, &ftKernel, &ftUser);
 }
 
 bool _PLATFORM_ xcheckdead(cat_ipc::internal::client_data& data)
@@ -161,10 +162,10 @@ bool _PLATFORM_ xcheckdead(cat_ipc::internal::client_data& data)
     {
         return true;
     }
-    FILETIME ft;
-    GetProcessTimes(process, &ft, nullptr, nullptr, nullptr);
-    return ft.dwLowDateTime == data.start_time.dwLowDateTime &&
-           ft.dwHighDateTime == data.start_time.dwHighDateTime;
+    FILETIME ft, ftExit, ftKernel, ftUser;
+    GetProcessTimes(process, &ft, &ftExit, &ftKernel, &ftUser);
+    return ft.dwLowDateTime != data.start_time.dwLowDateTime ||
+           ft.dwHighDateTime != data.start_time.dwHighDateTime;
 }
 
 }
