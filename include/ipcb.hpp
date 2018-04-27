@@ -22,7 +22,7 @@
 #include <type_traits>
 #include <functional>
 
-#include "util.h"
+#include "util.hpp"
 #include "cmp.hpp"
 
 /* This implementation allows up to 32 clients (unsigned int) */
