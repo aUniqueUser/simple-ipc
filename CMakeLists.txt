@@ -1,5 +1,3 @@
-# This builds a 32-bit version of library, building 64 bit is not supported yet.
-
 cmake_minimum_required(VERSION 3.0)
 
 project(SimpleIPC LANGUAGES C VERSION 0.0.1)
@@ -9,8 +7,9 @@ set(include_dest "include/${PROJECT_NAME}-${PROJECT_VERSION}")
 
 add_library(${PROJECT_NAME} INTERFACE)
 
-target_include_directories(${PROJECT_NAME} INTERFACE 
-        $<INSTALL_INTERFACE:${include_dest}/include>
+target_include_directories(${PROJECT_NAME} INTERFACE
+    $<INSTALL_INTERFACE:${include_dest}/include>
+    $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/include>
 )
 
 install(TARGETS ${PROJECT_NAME} EXPORT ${PROJECT_NAME} DESTINATION "${export_dest}")
