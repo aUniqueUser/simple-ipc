@@ -14,8 +14,7 @@
 class CatMemoryPool
 {
 public:
-    inline CatMemoryPool(void *base, size_t size)
-        : base(base), size(size)
+    inline CatMemoryPool(void *base, size_t size) : base(base), size(size)
     {
     }
 
@@ -84,14 +83,12 @@ public:
         info.allocblk = info.blkcnt - info.freeblk;
     }
 
-    template <typename T>
-    inline T *real_pointer(void *pointer) const
+    template <typename T> inline T *real_pointer(void *pointer) const
     {
         return reinterpret_cast<T *>((uintptr_t) base + (uintptr_t) pointer);
     }
 
-    template <typename T>
-    inline void *pool_pointer(T *pointer) const
+    template <typename T> inline void *pool_pointer(T *pointer) const
     {
         return (void *) ((uintptr_t) pointer - (uintptr_t) base);
     }

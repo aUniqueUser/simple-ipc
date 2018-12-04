@@ -56,8 +56,7 @@ struct command_s
 
 // S = struct for global data
 // U = struct for peer data
-template <typename S, typename U>
-struct ipc_memory_s
+template <typename S, typename U> struct ipc_memory_s
 {
     static_assert(std::is_pod<S>::value, "Global data struct must be POD");
     static_assert(std::is_pod<U>::value, "Peer data struct must be POD");
@@ -72,19 +71,17 @@ struct ipc_memory_s
     U peer_user_data[max_peers];        // some data for each peer, struct is defined by user
 };
 
-template <typename S, typename U>
-class Peer
+template <typename S, typename U> class Peer
 {
 public:
     typedef ipc_memory_s<S, U> memory_t;
 
     /*
-	 * name: IPC file name, will be used with shm_open
-	 * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
-	 * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
-	 */
-    Peer(std::string name, bool process_old_commands = true, bool manager = false, bool ghost = false)
-        : name(name), process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost)
+     * name: IPC file name, will be used with shm_open
+     * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
+     * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
+     */
+    Peer(std::string name, bool process_old_commands = true, bool manager = false, bool ghost = false) : name(name), process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost)
     {
     }
 
@@ -112,8 +109,7 @@ public:
     class MutexLock
     {
     public:
-        MutexLock(Peer *parent)
-            : parent(parent)
+        MutexLock(Peer *parent) : parent(parent)
         {
             pthread_mutex_lock(&parent->memory->mutex);
         }
@@ -126,16 +122,16 @@ public:
     };
 
     /*
-	 * Checks if peer has new commands to process (non-blocking)
-	 */
+     * Checks if peer has new commands to process (non-blocking)
+     */
     bool HasCommands() const
     {
         return (last_command != memory->command_count);
     }
 
     /*
-	 * Actually connects to server
-	 */
+     * Actually connects to server
+     */
     void Connect()
     {
         connected    = true;
@@ -173,8 +169,8 @@ public:
     }
 
     /*
-	 * Checks every slot in memory->peer_data, throws runtime_error if there are no free slots
-	 */
+     * Checks every slot in memory->peer_data, throws runtime_error if there are no free slots
+     */
     unsigned FirstAvailableSlot()
     {
         MutexLock lock(this);
@@ -189,8 +185,8 @@ public:
     }
 
     /*
-	 * Returns true if the slot can be marked free
-	 */
+     * Returns true if the slot can be marked free
+     */
     bool IsPeerDead(unsigned id) const
     {
         if (memory->peer_data[id].free)
@@ -203,9 +199,9 @@ public:
     }
 
     /*
-	 * Should be called only once in a lifetime of ipc instance.
-	 * this function initializes memory
-	 */
+     * Should be called only once in a lifetime of ipc instance.
+     * this function initializes memory
+     */
     void InitManager()
     {
         memset(memory, 0, sizeof(memory_t));
@@ -220,8 +216,8 @@ public:
     }
 
     /*
-	 * Marks every dead peer as free
-	 */
+     * Marks every dead peer as free
+     */
     void SweepDead()
     {
         MutexLock lock(this);
@@ -240,8 +236,8 @@ public:
     }
 
     /*
-	 * Stores data about this peer in memory
-	 */
+     * Stores data about this peer in memory
+     */
     void StorePeerData()
     {
         if (is_ghost)
@@ -257,17 +253,17 @@ public:
     }
 
     /*
-	 * A callback will be called every time peer gets a message
-	 * previously named: SetCallback(...)
-	 */
+     * A callback will be called every time peer gets a message
+     * previously named: SetCallback(...)
+     */
     void SetGeneralHandler(CommandCallbackFn_t new_callback)
     {
         callback = new_callback;
     }
 
     /*
-	 * Set a handler that will be fired when command with specified type will appear
-	 */
+     * Set a handler that will be fired when command with specified type will appear
+     */
     void SetCommandHandler(unsigned command_type, CommandCallbackFn_t handler)
     {
         if (callback_map.find(command_type) != callback_map.end())
@@ -278,8 +274,8 @@ public:
     }
 
     /*
-	 * Processes every command with command_number higher than this peer's last_command
-	 */
+     * Processes every command with command_number higher than this peer's last_command
+     */
     void ProcessCommands()
     {
         for (unsigned i = 0; i < command_buffer; i++)
@@ -304,8 +300,8 @@ public:
     }
 
     /*
-	 * Posts a command to memory, increases command_count
-	 */
+     * Posts a command to memory, increases command_count
+     */
     void SendMessage(const char *data_small, unsigned peer_mask, unsigned command_type, const void *payload, size_t payload_size)
     {
         MutexLock lock(this);
