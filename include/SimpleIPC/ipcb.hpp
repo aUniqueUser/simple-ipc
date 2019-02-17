@@ -338,7 +338,7 @@ public:
     CatMemoryPool *pool{ nullptr };
     const std::string name;
     bool process_old_commands{ true };
-    ipc_memory_s<S, U> *memory{ nullptr };
+    memory_t *memory{ nullptr };
     const bool is_manager{ false };
     const bool is_ghost{ false };
 };
