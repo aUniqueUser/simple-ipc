@@ -149,7 +149,7 @@ public:
         }
         ftruncate(fd, sizeof(memory_t));
         umask(old_mask);
-        memory = (memory_t *) mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ | PROT_EXEC, MAP_SHARED, fd, 0);
+        memory = (memory_t *) mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
         close(fd);
         pool = new CatMemoryPool(&memory->pool, pool_size);
         if (is_manager)
