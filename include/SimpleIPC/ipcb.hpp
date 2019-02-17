@@ -98,8 +98,11 @@ public:
         {
             return;
         }
-        MutexLock lock(this);
-        memory->peer_data[client_id].free = true;
+        if (memory)
+        {
+            MutexLock lock(this);
+            memory->peer_data[client_id].free = true;
+        }
     }
 
     typedef std::function<void(command_s &, void *)> CommandCallbackFn_t;
