@@ -232,7 +232,7 @@ public:
      */
     bool IsPeerDead(unsigned id) const
     {
-        if (time(nullptr) - memory->peer_data[id].heartbeat >= 10)
+        if (time(nullptr) - memory->peer_data[id].heartbeat >= 3)
             return true;
 
         return false;
