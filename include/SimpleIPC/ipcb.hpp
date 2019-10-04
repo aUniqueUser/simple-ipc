@@ -79,10 +79,12 @@ public:
      * process_old_commands: if false, peer's last_command will be set to actual last command in memory to prevent processing outdated commands
      * manager: there must be only one manager peer in memory, if the peer is manager, it allocates/deallocates shared memory
      */
-    Peer(std::string name, bool process_old_commands = true, bool manager = false, bool ghost = false) : name(name), process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost)
+    Peer(const char *name_, bool process_old_commands = true, bool manager = false, bool ghost = false)
+        : process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost)
     {
+        std::strncpy(name, name_, sizeof(name) - 1);
+        name[FILENAME_MAX] = 0;
     }
-
     ~Peer()
     {
         if (heartbeat_thread)
@@ -92,19 +94,21 @@ public:
         }
         if (is_manager)
         {
+            if (memory != MAP_FAILED)
+                munmap(memory, sizeof(memory_t));
+
             pthread_mutex_destroy(&memory->mutex);
-            shm_unlink(name.c_str());
+            shm_unlink(name);
+            return;
+        }
+        if (memory != MAP_FAILED)
+        {
+            if (!is_ghost)
+            {
+                MutexLock lock(this);
+                memory->peer_data[client_id].free = true;
+            }
             munmap(memory, sizeof(memory_t));
-            return;
-        }
-        if (is_ghost)
-        {
-            return;
-        }
-        if (memory)
-        {
-            MutexLock lock(this);
-            memory->peer_data[client_id].free = true;
         }
     }
 
@@ -144,61 +148,83 @@ public:
         }
         return nullptr;
     }
+    inline bool Connect()
+    {
+        int slot = FirstAvailableSlot();
+        if (!is_ghost && slot < 0)
+            return false;
+
+        return Connect(slot);
+    }
     /*
      * Actually connects to server
      */
-    void Connect()
+    bool Connect(int slot)
     {
         connected    = true;
         int old_mask = umask(0);
         int flags    = O_RDWR;
         if (is_manager)
             flags |= O_CREAT;
-        int fd = shm_open(name.c_str(), flags, S_IRWXU | S_IRWXG | S_IRWXO);
+        int fd = shm_open(name, flags, S_IRWXU | S_IRWXG | S_IRWXO);
         if (fd == -1)
         {
-            throw std::runtime_error("server isn't running");
+            // server isn't running
+            fprintf(stderr, "Failed to connect to IPC: server isn't running\n");
+            return false;
         }
         ftruncate(fd, sizeof(memory_t));
         umask(old_mask);
-        memory = (memory_t *) mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+        memory = (memory_t *)mmap(0, sizeof(memory_t), PROT_WRITE | PROT_READ, MAP_SHARED, fd, 0);
+        int e = errno;
         close(fd);
+        if (memory == MAP_FAILED)
+        {
+            fprintf(stderr, "Failed to perform IPC memory mapping: %s\n", strerror(e));
+            return false;
+        }
         pool = new CatMemoryPool(&memory->pool, pool_size);
         if (is_manager)
-        {
             InitManager();
-        }
+
         if (!is_ghost)
         {
-            client_id = FirstAvailableSlot();
+            if (slot < 0 ? (slot = FirstAvailableSlot()) < 0 : !memory->peer_data[slot].free)
+            {
+                munmap(memory, sizeof(memory_t));
+                memory = reinterpret_cast<memory_t*>(MAP_FAILED);
+                fprintf(stderr, "IPC no free slots or slot %d is taken\n", slot);
+                return false;
+            }
+            client_id = slot;
             StorePeerData();
-        }
-        else
-        {
-            client_id = unsigned(-1);
-        }
+        } else
+            client_id = (unsigned)-1;
+
         if (!process_old_commands)
-        {
             last_command = memory->command_count;
-        }
+
         if (!is_ghost && pthread_create(&heartbeat_thread, nullptr, Heartbeat, &memory->peer_data[client_id]))
-            throw std::runtime_error("cannot create hearbeat thread");
+            fprintf(stderr, "IPC cannot create hearbeat thread!\n");
+
+        return true;
     }
 
     /*
      * Checks every slot in memory->peer_data, throws runtime_error if there are no free slots
      */
-    unsigned FirstAvailableSlot()
+    int FirstAvailableSlot()
     {
+        if (is_ghost)
+            return -1;
+
         MutexLock lock(this);
-        for (unsigned i = 0; i < max_peers; i++)
-        {
+        for (int i = 0; i < max_peers; i++)
             if (memory->peer_data[i].free)
-            {
                 return i;
-            }
-        }
-        throw std::runtime_error("no available slots");
+
+        fprintf(stderr, "IPC no available slots\n");
+        return -1;
     }
 
     /*
@@ -343,9 +369,9 @@ public:
     unsigned long last_command{ 0 };
     CommandCallbackFn_t callback{ nullptr };
     CatMemoryPool *pool{ nullptr };
-    const std::string name;
+    char name[FILENAME_MAX];
     bool process_old_commands{ true };
-    memory_t *memory{ nullptr };
+    memory_t *memory = reinterpret_cast<memory_t*>(MAP_FAILED);
     const bool is_manager{ false };
     const bool is_ghost{ false };
     pthread_t heartbeat_thread{ 0 };
