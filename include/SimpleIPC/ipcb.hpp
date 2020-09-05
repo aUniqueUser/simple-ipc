@@ -82,7 +82,7 @@ public:
     Peer(const char *name_, bool process_old_commands = true, bool manager = false, bool ghost = false)
         : process_old_commands(process_old_commands), is_manager(manager), is_ghost(ghost)
     {
-        std::strncpy(name, name_, sizeof(name) - 1);
+        strncpy(name, name_, sizeof(name) - 1);
         name[FILENAME_MAX] = 0;
     }
     ~Peer()
